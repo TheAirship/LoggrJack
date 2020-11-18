@@ -1,0 +1,16 @@
+aiohttp==3.7.2
+async-timeout==3.0.1
+attrs==20.2.0
+certifi==2020.6.20
+chardet==3.0.4
+dnspython==2.0.0
+geoip2==4.1.0
+idna==2.10
+ipwhois==1.2.0
+maxminddb==2.0.3
+multidict==5.0.0
+requests==2.24.0
+typing-extensions==3.7.4.3
+urllib3==1.25.11
+whois==0.9.7
+yarl==1.6.2
