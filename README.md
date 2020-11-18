@@ -1,21 +1,22 @@
-# LoggerJack (COMING SOON!)
+# LoggerJack - Simplify Your Log Analysis
 
-LoggerJack is a log parsing and analytics tool written in Python. Specifically, it was created to apply geolocation data to a text log containing IP addresses to help identify authentication attempts that geolocate to unexpected regions. There are two general use cases for this tool:
+LoggerJack is a log parsing and analytics tool written in Python. It was created to apply geolocation data to Office 365 authentication logs and grew into something more. There are two general use cases for this tool:
 
-* For incident responders who want to quickly summarize an authentication log as part of post-incident response efforts.
-* For sysadmins and IT personnel who want to periodically audit authentication logs for suspicious activity. This could, in theory, result in the previously mentioned use case.
+* To help incident responders quickly summarize an authentication log as part of response efforts.
+* To help syadmins and IT personnel quickly audit authentication logs for suspicious activity. This could, in theory, result in the aforementioned use case.
 
-Using LoggerJack, you can:
+With LoggerJack, you can:
 
 * Export a summary of authentication activity from a log file, including:
   * The top 10 source IPv4 and IPv6 addresses seen in the log
   * A list of IP addresses that do not geolocate to the user's current region
   * A per-user summary of authentication activity, including the number of times they authenticated, and their geolocation
 * Export a line-by-line analysis of activity from the log in chronological order, with geolocation applied
-* Filter analysis to a specific user, IP address, or country
+* Filter analysis to a specific user, IP address, country, or domain
+* Query the Have I Been Pwned API for the Pwned status of each email address
 * Dump a list of all unique IPv4 and IPv6 addresses seen in the log file
 
-LoggerJack is not a replacement for a SIEM or any other more advanced security monitoring tool.
+LoggerJack is not meant to replace a SIEM or any other more advanced security event monitoring tool.
 
 ## Installation & General Use
 
@@ -48,6 +49,10 @@ You can also declare the top *n* addresses that are included in the summary by p
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s 7`
 
+To add data for each email address from the Have I Been Pwned API, first obtain your API key from https://haveibeenpwned.com/API/Key, then pass it to LoggerJack with the -p parameter. You can increase the verbosity (-v or -vv) for more detailed breach information.
+
+`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s -p [HIBP API Key]`
+
 ### Core Analysis
 
 The core use of LoggerJack will create the line-by-line, chronological listing of authentication events, including date, time, username, source IP, and country data.
@@ -66,11 +71,15 @@ You can also exclude specific values from the results using the -x parameter and
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -x country -d "United States,Canada"`
 
+Finally, you can filter or exclude a specific domain if you have multiple domains in your logs. As an example, to only show domains other than bar.com:
+
+`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -x domain -d "bar.com"`
+
 NOTE: You cannot pass both the -f and -x parameters in the same command.
 
 ### IP Dump
 
-To dump a list of all unique IP addresses found in the log file, use the -i parameter. Increased verbosity will provide geolocation info for each IP address.
+To dump a list of all unique IP addresses found in the log file, use the -i parameter. Increased verbosity (-v or -vv) will add geolocation info to each IP address.
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -i`
 
@@ -80,7 +89,7 @@ Additional verbosity (-v through -vvv) will return other information, such as th
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f user -d "barneyfife@foo.com" -vvv`
 
-Some Office 365 logs include events that are benign and only clutter the log, such as FaultDomainRedirect. You may also want to exclude RFC 1918 private addresses from logging output. You can do all of that with the -g parameter.
+Some Office 365 logs include events that are benign and only clutter the log, such as FaultDomainRedirect. You can do that with the -g parameter.
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -g`
 
@@ -88,16 +97,28 @@ Finally, to quick filter down to IPs that geolocate to areas outside of your cur
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -w`
 
-LoggerJack requires an Internet connection to determine your current location, and to execute WHOIS lookups. If you don't want to connect out to the Internet, or a connection is unavailable, do not use verbosity level -vvv. Also, to override the function that determines your current location based on your public IP address, you can pass a specific country with the -w parameter, as shown below:
+### Internet Connectivity
+
+LoggerJack requires an Internet connection to determine your current location, to execute WHOIS lookups, and to pull down data from Have I Been Pwned. If you don't want to connect to the Internet, or a connection is unavailable, 
+
+* Do not use verbosity level -vvv with the Detailed Analysis functionality 
+* Do not use the -p argument to query Have I Been Pwned
+* Manually override the geolocation warning function by passing your current country with the -w parameter, as shown below:
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -w "Great Britain"`
 
 ## Caveats & Reminders
 
-* **IP geolocation is not 100% accurate.** Geolocation information also changes constantly. Be sure to use the most current MaxMind database available, and understand that you aren't going to get an exact city, region, and country result every time.
+* **IP geolocation isn't always 100% accurate.** Geolocation information also changes constantly. Be sure to use the most current MaxMind database available, and understand that you aren't going to get an exact city, region, and country result every time.
 * **Attribution is hard.** Just because the source IP of an auth attempt geolocates to a specific country doesn't mean that it's actually where the attacker is located. Geolocation information is provided to help spot unusual or suspicious activity, not to catch a bad actor.
 * **Log formats change periodically.** Also, my coding is far from perfect. If you encounter bugs or unexpected results after running LoggerJack, please submit an issue on GitHub. Suggestions for improvement are welcome too.
 * LoggerJack was written using the free MaxMind GeoLite2 City database in mmdb format. Other MaxMind GeoLite2 databases may still work at lower verbosity levels. GeoLite2 databases in CSV format will not work; make sure you download the mmdb format.
 * LoggerJack was written in python3, and tested primarily on 3.9.0.
 
 ## About
+
+Thanks to @TroyHunt for his work on Have I Been Pwned?
+Thanks to @MaxMind for giving locations to IPs.
+Thanks to the many, many people who put time and effort into developing the modules used in LoggerJack.
+
+Copyright © 2020 Craig Jackson, Licensed under Apache License 2.0
