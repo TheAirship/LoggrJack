@@ -1,4 +1,4 @@
-# LoggerJack - Simplify Your Log Analysis
+# LoggerJack - Simplify Text-Based Log Analysis
 
 LoggerJack is a log parsing and analytics tool written in Python. It was created to apply geolocation data to Office 365 authentication logs and grew into something more. There are two general use cases for this tool:
 
@@ -10,7 +10,7 @@ With LoggerJack, you can:
 * Export a summary of authentication activity from a log file, including:
   * The top 10 source IPv4 and IPv6 addresses seen in the log
   * A list of IP addresses that do not geolocate to the user's current region
-  * A per-user summary of authentication activity, including the number of times they authenticated, and their geolocation
+  * A per-user summary of authentication activity, including the number of times they authenticated and their geolocation
 * Export a line-by-line analysis of activity from the log in chronological order, with geolocation applied
 * Filter analysis to a specific user, IP address, country, or domain
 * Query the Have I Been Pwned API for the Pwned status of each email address
@@ -117,8 +117,8 @@ LoggerJack requires an Internet connection to determine your current location, t
 
 ## About
 
-Thanks to @TroyHunt for his work on Have I Been Pwned?
-Thanks to @MaxMind for giving locations to IPs.
+Thanks to @TroyHunt for his excellent work on Have I Been Pwned?
+Thanks to @MaxMind for their excellent work giving locations to IPs.
 Thanks to the many, many people who put time and effort into developing the modules used in LoggerJack.
 
 Copyright © 2020 Craig Jackson, Licensed under Apache License 2.0
