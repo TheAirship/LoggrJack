@@ -43,7 +43,7 @@ The ultimate goal of the LoggerJack project is to include other text-based log f
 
 LoggerJack has three analysis modes: Log Summary, Detailed Analysis, and IP Dump.
 
-![helpimage]()
+![helpimage](https://github.com/TheAirship/LoggerJack/blob/main/Images/LJ%20-%20Help.png)
 
 ### Log Summary
 
