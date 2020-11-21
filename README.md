@@ -43,6 +43,8 @@ The ultimate goal of the LoggerJack project is to include other text-based log f
 
 LoggerJack has three analysis modes: Log Summary, Detailed Analysis, and IP Dump.
 
+![helpimage]()
+
 ### Log Summary
 
 The easiest place to start with LoggerJack is the Log Summary mode, which summarizes the data from the log, including top 10 IPv4 addresses, top 10 IPv6 addresses, IP addresses that don't geolocate to the user's current country, and a summary of authentication data for each user.
