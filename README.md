@@ -43,7 +43,7 @@ LoggerJack has three analysis modes: Log Summary, Detailed Analysis, and IP Dump
 
 ### Log Summary
 
-The easiest place to start with LoggerJack is the log summary function, which summarizes the data from the log, including top 10 IPv4 addresses, top 10 IPv6 addresses, IP addresses that don't geolocate to the user's current country, and a summary of authentication data for each user.
+The easiest place to start with LoggerJack is the Log Summary mode, which summarizes the data from the log, including top 10 IPv4 addresses, top 10 IPv6 addresses, IP addresses that don't geolocate to the user's current country, and a summary of authentication data for each user.
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s`
 
@@ -51,7 +51,7 @@ You can also declare the top *n* addresses that are included in the summary by p
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s 7`
 
-To add data for each email address from the Have I Been Pwned API, first obtain your API key from https://haveibeenpwned.com/API/Key, then pass it to LoggerJack with the -p parameter. You can increase the verbosity (-v or -vv) for more detailed breach information.
+To add Have I Been Pwned breach data for each email address found in the log, first obtain your API key from https://haveibeenpwned.com/API/Key, then pass it to LoggerJack using the -p parameter. You can increase the verbosity (-v or -vv) for more detailed breach information.
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s -p [HIBP API Key]`
 
@@ -87,7 +87,7 @@ To dump a list of all unique IP addresses found in the log file, use the -i para
 
 ### Other Options
 
-Additional verbosity (-v through -vvv) will return other information, such as the reported login type, and the results of a WHOIS lookup for the IP address. Use caution, because higher verbosity levels also means more output. You should consider filtering the full output (e.g. by user, IP, or country) when greater verbosity is desired.
+Additional verbosity (-v through -vvv) will return other information, such as the reported login type, and the results of a WHOIS lookup for the IP address. Use caution, because higher verbosity levels also means much more output. You should consider filtering the full output (e.g. by user, IP, or country) if greater verbosity is desired while using the Detailed Analysis mode.
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f user -d "barneyfife@foo.com" -vvv`
 
