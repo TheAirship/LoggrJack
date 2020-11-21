@@ -121,8 +121,8 @@ LoggerJack uses your Internet connection to determine your current location, to 
 
 ## About / License
 
-Thanks to @MaxMind for their excellent work giving locations to IPs.\
-Thanks to @TroyHunt for his excellent work on Have I Been Pwned?\
+Thanks to [@MaxMind](https://github.com/maxmind) for their excellent work giving locations to IPs.\
+Thanks to [@TroyHunt](https://github.com/troyhunt) for his excellent work on Have I Been Pwned?\
 Thanks to the many, many people who put time and effort into developing the modules used in LoggerJack.\
 \
 Licensed under [Apache License 2.0](https://github.com/TheAirship/LoggerJack/blob/main/LICENSE)
