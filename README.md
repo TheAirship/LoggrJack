@@ -125,4 +125,4 @@ Thanks to @MaxMind for their excellent work giving locations to IPs.\
 Thanks to @TroyHunt for his excellent work on Have I Been Pwned?\
 Thanks to the many, many people who put time and effort into developing the modules used in LoggerJack.\
 \
-[Licensed under Apache License 2.0](https://github.com/TheAirship/LoggerJack/blob/main/LICENSE)
+Licensed under [Apache License 2.0](https://github.com/TheAirship/LoggerJack/blob/main/LICENSE)
