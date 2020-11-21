@@ -35,9 +35,11 @@ Alternatively, if you are on a Windows platform, you can download the EXE from t
 
 At this time, LoggerJack is only built to parse authentication logs from Office 365 (**Workplace Analytics > User Logged In**). Depending on the size of your environment and your level of user activity, certain LoggerJack configurations may produce a substantial amount of output. In general, start with a week's worth of exported events and then adjust from there. You can learn more about exporting Office 365 logs here: https://docs.microsoft.com/en-us/microsoft-365/compliance/search-the-audit-log-in-security-and-compliance?view=o365-worldwide
 
-There are plans to expand LoggerJack to include Outlook Web Access (IIS), Azure Active Directory, Linux authentication, and other logs in the future, as time permits.
+The ultimate goal of the LoggerJack project is to include other text-based log formats (e.g. OWA / IIS, Azure Active Directory, Debian auth), allowing for an at-a-glance review of activity for different systems and applications.
 
 ## Commands, Tips, and Examples
+
+LoggerJack has three analysis modes: Log Summary, Detailed Analysis, and IP Dump.
 
 ### Log Summary
 
@@ -53,9 +55,9 @@ To add data for each email address from the Have I Been Pwned API, first obtain 
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s -p [HIBP API Key]`
 
-### Core Analysis
+### Detailed Analysis
 
-The core use of LoggerJack will create the line-by-line, chronological listing of authentication events, including date, time, username, source IP, and country data.
+LoggerJack's Detailed Analysis will create the line-by-line, chronological listing of authentication events, including date, time, username, source IP, and country data.
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file]`
 
@@ -97,16 +99,6 @@ Finally, to quick filter down to IPs that geolocate to areas outside of your cur
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -w`
 
-### Internet Connectivity
-
-LoggerJack requires an Internet connection to determine your current location, to execute WHOIS lookups, and to pull down data from Have I Been Pwned. If you don't want to connect to the Internet, or a connection is unavailable, 
-
-* Do not use verbosity level -vvv with the Detailed Analysis functionality 
-* Do not use the -p argument to query Have I Been Pwned
-* Manually override the geolocation warning function by passing your current country with the -w parameter, as shown below:
-
-`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -w "Great Britain"`
-
 ## Caveats & Reminders
 
 * **IP geolocation isn't always 100% accurate.** Geolocation information also changes constantly. Be sure to use the most current MaxMind database available, and understand that you aren't going to get an exact city, region, and country result every time.
@@ -115,10 +107,20 @@ LoggerJack requires an Internet connection to determine your current location, t
 * LoggerJack was written using the free MaxMind GeoLite2 City database in mmdb format. Other MaxMind GeoLite2 databases may still work at lower verbosity levels. GeoLite2 databases in CSV format will not work; make sure you download the mmdb format.
 * LoggerJack was written in python3, and tested primarily on 3.9.0.
 
-## About
+### Internet Connectivity
 
-Thanks to @TroyHunt for his excellent work on Have I Been Pwned?\
+LoggerJack uses your Internet connection to determine your current location, to execute WHOIS lookups, and to pull down data from Have I Been Pwned. If you don't want to connect to the Internet, or a connection is unavailable...
+
+* Do not use verbosity level -vvv with the Detailed Analysis mode
+* Do not use the -p parameter to query Have I Been Pwned
+* Manually override the geolocation warning function by passing your current country as an argument with the -w parameter, as shown below:
+
+`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -w "Great Britain"`
+
+## About / License
+
 Thanks to @MaxMind for their excellent work giving locations to IPs.\
+Thanks to @TroyHunt for his excellent work on Have I Been Pwned?\
 Thanks to the many, many people who put time and effort into developing the modules used in LoggerJack.\
 \
 Copyright © 2020 Craig Jackson, Licensed under Apache License 2.0
