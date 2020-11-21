@@ -23,11 +23,13 @@ LoggerJack is not meant to replace a SIEM or any other more advanced security ev
 LoggerJack can be run from just about any system with Python installed. Use of a Python virtual environment, such as pyenv (https://github.com/pyenv/pyenv) with the virtualenv plugin, is always recommended.
 
 1. Clone the repo: `git clone https://github.com/TheAirship/LoggerJack.git`
-1. Change to the directory: `cd [path_to_download]`
-1. Install the reqs: `pip install -r requirements.txt`
-1. Download a copy of the most current MaxMind GeoLite2 City database in mmdb format (learn how to do that here: https://dev.maxmind.com/geoip/geoip2/geolite2/)
-1. Download a copy of the log file you want to analyze (see the *Compatible Logs* section below)
-1. Run LoggerJack, targeting the downloaded log file and MaxMind database
+2. Change to the directory: `cd [path_to_download]`
+3. Install the reqs
+    * Using Pip (python3 already installed): `pip install -r requirements.txt`
+    * Using Apt: `sudo apt install python3 python3-geoip2 python3-ipwhois python3-requests`
+4. Download a copy of the most current MaxMind GeoLite2 City database in mmdb format (learn how to do that here: https://dev.maxmind.com/geoip/geoip2/geolite2/)
+5. Download a copy of the log file you want to analyze (see the *Compatible Logs* section below)
+6. Run LoggerJack, targeting the downloaded log file and MaxMind database
 
 Alternatively, if you are on a Windows platform, you can download the EXE from the latest release instead of cloning the repo and installing requirements. In this case you would replace `python LoggerJack.py` with `LoggerJack.exe` in all command examples below.
 
