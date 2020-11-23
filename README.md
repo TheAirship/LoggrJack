@@ -65,21 +65,21 @@ LoggerJack's Detailed Analysis will create the line-by-line, chronological listi
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file]`
 
-Filtering core analysis output is easy. You simply tell LoggerJack what data (i.e. user, IP, or country) you want to filter by and pass a comma-separated list of values to filter. For example, to filter all results to user 'andytaylor@foo.com', use the following:
+Filtering core analysis output is easy. You simply tell LoggerJack what data (i.e. user, IP, or country) you want to filter by and pass a comma-separated list of values to filter. For example, to filter all results to user 'andytaylor@example.com', use the following:
 
-`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f user -d "andytaylor@foo.com"`
+`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f user -d "andytaylor@example.com"`
 
-Or, to filter to multiple IP addresses, use the following:
+Or, to filter by IP addresses x.x.x.x and y.y.y.y:
 
-`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f ip -d "1.2.3.4,5.6.7.8"`
+`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f ip -d "x.x.x.x,y.y.y.y"`
 
 You can also exclude specific values from the results using the -x parameter and similar command formatting.
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -x country -d "United States,Canada"`
 
-Finally, you can filter or exclude a specific domain if you have multiple domains in your logs. As an example, to only show domains other than bar.com:
+Finally, you can filter or exclude a specific domain if you have multiple domains in your logs. As an example, to only show domains other than example.com:
 
-`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -x domain -d "bar.com"`
+`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -x domain -d "example.com"`
 
 NOTE: You cannot pass both the -f and -x parameters in the same command.
 
@@ -93,7 +93,7 @@ To dump a list of all unique IP addresses found in the log file, use the -i para
 
 Additional verbosity (-v through -vvv) will return other information, such as the reported login type, and the results of a WHOIS lookup for the IP address. Use caution, because higher verbosity levels also means much more output. You should consider filtering the full output (e.g. by user, IP, or country) if greater verbosity is desired while using the Detailed Analysis mode.
 
-`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f user -d "barneyfife@foo.com" -vvv`
+`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f user -d "barneyfife@example.com" -vvv`
 
 Some Office 365 logs include events that are benign and only clutter the log, such as FaultDomainRedirect. You can do that with the -g parameter.
 
