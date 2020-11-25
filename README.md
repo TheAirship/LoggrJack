@@ -20,7 +20,7 @@ LoggerJack is not meant to replace a SIEM or any other more advanced security ev
 
 ## Installation & General Use
 
-LoggerJack can be run from just about any system with Python installed. Use of a Python virtual environment, such as pyenv (https://github.com/pyenv/pyenv) with the virtualenv plugin, is always recommended.
+LoggerJack can be run from just about any system with Python installed. Use of a Python virtual environment, such as pyenv (https://github.com/pyenv/pyenv) with the virtualenv plugin, is recommended.
 
 1. Clone the repo: `$ git clone https://github.com/TheAirship/LoggerJack.git`
 2. Change to the directory: `$ cd [path_to_download]`
@@ -35,7 +35,7 @@ Alternatively, if you are on a Windows platform, you can download the EXE from t
 
 ## Compatible Logs
 
-At this time, LoggerJack is only built to parse authentication logs from Office 365 (**Workplace Analytics > User Logged In**). Depending on the size of your environment and your level of user activity, certain LoggerJack configurations may produce a substantial amount of output. In general, start with a week's worth of exported events and then adjust from there. You can learn more about exporting Office 365 logs here: https://docs.microsoft.com/en-us/microsoft-365/compliance/search-the-audit-log-in-security-and-compliance?view=o365-worldwide
+At this time, LoggerJack is only built to parse authentication logs from Office 365 (**Workplace Analytics > User Logged In**). Depending on the size of your environment and the level of user activity, certain LoggerJack configurations may produce a substantial amount of output. In general, start with a week's worth of exported events and then adjust from there. You can learn more about exporting Office 365 logs here: https://docs.microsoft.com/en-us/microsoft-365/compliance/search-the-audit-log-in-security-and-compliance?view=o365-worldwide
 
 The ultimate goal of the LoggerJack project is to include other text-based log formats (e.g. OWA / IIS, Azure Active Directory, Debian auth), allowing for an at-a-glance review of activity for different systems and applications.
 
@@ -51,7 +51,7 @@ The easiest place to start with LoggerJack is the Log Summary mode, which summar
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s`
 
-You can also declare the top *n* addresses that are included in the summary by passing an integer with the -s parameter. For example, to show only the top 7 IPv4 and IPv6 addresses:
+You can also modify the top *n* addresses that are included in the summary by passing an integer with the -s parameter. For example, to show only the top 7 IPv4 and IPv6 addresses:
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s 7`
 
@@ -61,7 +61,7 @@ To add Have I Been Pwned breach data for each email address found in the log, fi
 
 ### Detailed Analysis
 
-LoggerJack's Detailed Analysis will create the line-by-line, chronological listing of authentication events, including date, time, username, source IP, and country data.
+LoggerJack's Detailed Analysis will create a line-by-line, chronological listing of authentication events, including date, time, username, source IP, and country data.
 
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file]`
 
@@ -83,6 +83,10 @@ Finally, you can filter or exclude a specific domain if you have multiple domain
 
 NOTE: You cannot pass both the -f and -x parameters in the same command.
 
+Additional verbosity (-v through -vvv) will return other information, such as the reported login type, and the results of a WHOIS lookup for the IP address. Use caution, because higher verbosity levels also means much more output. You should consider filtering the full output (e.g. by user, IP, or country) if greater verbosity is desired while using the Detailed Analysis mode.
+
+`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f user -d "barneyfife@example.com" -vvv`
+
 ### IP Dump
 
 To dump a list of all unique IP addresses found in the log file, use the -i parameter. Increased verbosity (-v or -vv) will add geolocation info to each IP address.
@@ -90,10 +94,6 @@ To dump a list of all unique IP addresses found in the log file, use the -i para
 `$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -i`
 
 ### Other Options
-
-Additional verbosity (-v through -vvv) will return other information, such as the reported login type, and the results of a WHOIS lookup for the IP address. Use caution, because higher verbosity levels also means much more output. You should consider filtering the full output (e.g. by user, IP, or country) if greater verbosity is desired while using the Detailed Analysis mode.
-
-`$ python LoggerJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -f user -d "barneyfife@example.com" -vvv`
 
 Some Office 365 logs include events that are benign and only clutter the log, such as FaultDomainRedirect. You can do that with the -g parameter.
 
@@ -107,7 +107,7 @@ Finally, to quick filter down to IPs that geolocate to areas outside of your cur
 
 * **IP geolocation isn't always 100% accurate.** Geolocation information also changes constantly. Be sure to use the most current MaxMind database available, and understand that you aren't going to get an exact city, region, and country result every time.
 * **Attribution is hard.** Just because the source IP of an auth attempt geolocates to a specific country doesn't mean that it's actually where the attacker is located. Geolocation information is provided to help spot unusual or suspicious activity, not to catch a bad actor.
-* **Log formats change periodically.** Also, my coding is far from perfect. If you encounter bugs or unexpected results after running LoggerJack, please submit an issue on GitHub. Suggestions for improvement are welcome too.
+* **Log formats change periodically.** Also, my coding is far from perfect. If you encounter bugs or unexpected results after running LoggerJack, please submit an issue on GitHub.
 * LoggerJack was written using the free MaxMind GeoLite2 City database in mmdb format. Other MaxMind GeoLite2 databases may still work at lower verbosity levels. GeoLite2 databases in CSV format will not work; make sure you download the mmdb format.
 * LoggerJack was written in python3, and tested primarily on 3.9.0.
 
@@ -127,4 +127,5 @@ Thanks to [@MaxMind](https://github.com/maxmind) for their excellent work giving
 Thanks to [@TroyHunt](https://github.com/troyhunt) for his excellent work on Have I Been Pwned?\
 Thanks to the many, many people who put time and effort into developing the modules used in LoggerJack.\
 \
+Questions, comments, and suggestions for improvement are welcome. Contact: infosec@theairship.cloud
 Licensed under [Apache License 2.0](https://github.com/TheAirship/LoggerJack/blob/main/LICENSE)
