@@ -127,5 +127,5 @@ Thanks to [@MaxMind](https://github.com/maxmind) for their excellent work giving
 Thanks to [@TroyHunt](https://github.com/troyhunt) for his excellent work on Have I Been Pwned?\
 Thanks to the many, many people who put time and effort into developing the modules used in LoggerJack.\
 \
-Questions, comments, and suggestions for improvement are welcome. Contact: infosec@theairship.cloud
+Questions, comments, and suggestions for improvement are welcome. Contact: infosec@theairship.cloud\
 Licensed under [Apache License 2.0](https://github.com/TheAirship/LoggerJack/blob/main/LICENSE)
