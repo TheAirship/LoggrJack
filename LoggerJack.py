@@ -42,7 +42,7 @@ import time
 
 __author__ = "Craig Jackson"
 __license__ = "Apache License 2.0"
-__version__ = "1.2.112120"
+__version__ = "1.2.0"
 
 # Set global variables
 
@@ -528,7 +528,7 @@ def getHIBP(uName,hibpKey,verbLvl):
     ## Create necessary request strings
 
     baseReqStr = "https://haveibeenpwned.com/api/v3/breachedaccount/" + uName
-    headerDict = {'hibp-api-key':hibpKey,'user-agent':'LoggerJack ' + __version__ + ' (Linux / Mac)'}
+    headerDict = {'hibp-api-key':hibpKey,'user-agent':'LoggerJack ' + __version__ + ' (Linux / Mac / Win)'}
 
     ## Query HIBP and parse based on HTTP response code
 
@@ -644,7 +644,7 @@ def createSummary(fileText,topNum,cityList,currLoc,verbLvl,hibpKey):
 
         if verbLvl > 1:
             baseReqStr = "https://haveibeenpwned.com/api/v3/breaches/"
-            headerDict = {'hibp-api-key':hibpKey,'user-agent':'LoggerJack ' + __version__ + ', Linux / Mac)'}
+            headerDict = {'hibp-api-key':hibpKey,'user-agent':'LoggerJack ' + __version__ + ', Linux / Mac / Win)'}
             allBreaches = requests.get(baseReqStr,headers=headerDict)
             allBreaches = allBreaches.json()
 
