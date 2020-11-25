@@ -1,0 +1,4 @@
+LoggerJack 1.2.0
+MD5 - 3caebbfdce1e48cb86b3f6853bee101a
+SHA1 - eca4fd17209e8121368a6e5ff6086c1eaea7f171
+SHA256 - c0564aeb817a6b6735f65c2f2ae73d29a28a01aa3f2885bfa9c0e3ffbe351771
