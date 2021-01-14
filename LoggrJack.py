@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-"""LoggerJack - Simplify Text-Based Log Analysis
+"""LoggrJack - Simplify Text-Based Log Analysis
 
-LoggerJack is a command line log parser that allows incident responders and security professionals
+LoggrJack is a command line log parser that allows incident responders and security professionals
 to quickly extract meaningful data from long, text-formatted logs (e.g. csv, txt). The ultimate
-goal of the LoggerJack project is to allow for an at-a-glance review of activity logs
+goal of the LoggrJack project is to allow for an at-a-glance review of activity logs
 for different systems and applications.
 
-LoggerJack is not meant to replace a SIEM or any other advanced security control.
+LoggrJack is not meant to replace a SIEM or any other advanced security control.
 
 Copyright © 2020 Craig Jackson
 
