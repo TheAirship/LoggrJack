@@ -1,9 +1,3 @@
-# Images directory
-Images/
-
-# EXE hashes file
-hashes.txt
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
