@@ -27,7 +27,8 @@ limitations under the License.
 
 import argparse
 from collections import Counter
-import datetime
+import colorama
+from datetime import datetime
 import geoip2.database
 import hashlib
 import ipaddress
@@ -42,9 +43,11 @@ import time
 
 __author__ = "Craig Jackson"
 __license__ = "Apache License 2.0"
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
-# Set global variables
+###############################################
+###    Global Variables & Supporting Data   ###
+###############################################
 
 class globalRes():
 
@@ -56,7 +59,32 @@ class globalRes():
     resProc = 0 # Events processed after log cleanup (-g parameter)
     resPrint = 0 # Events printed after user-defined filters / exclusions
 
-# Set dict variables with relevant log info
+class extInfLbl():
+
+    """
+    LoggrJack provides three slots in each eventDict value for extra information - that is, information
+    relevant to each log type, but is not consistent beween log types. The labels for this extra
+    information have to be provided for each log type. Variables are instanciated here, set in Main,
+    and used by the resultsOut function.
+    """
+
+    extInfLbl1 = ""
+    extInfLbl2 = ""
+    extInfLbl3 = ""
+
+class txtColor():
+
+    """
+    Colorized text to highlight certain kinds of output
+    """
+
+    colGood = "\033[32m" # Green
+    colInfo = "\033[34m" # Blue
+    colWarn = "\033[31m" # Red
+    colErr = "\033[33m"  # Yellow
+    colNorm = "\033[0m"  # Reset to default
+
+# Set dict variables with relevant Microsoft 365 log info
 # Details obtained from https://docs.microsoft.com/en-us/microsoft-365/compliance/detailed-properties-in-the-office-365-audit-log?view=o365-worldwide
 
 logUserType = {
@@ -99,7 +127,9 @@ logRecordType = {
     "65" : "Quarantine audit record event",
 }
 
-# Functions
+###############################################
+###            General Functions            ###
+###############################################
 
 def printBanner():
 
@@ -109,10 +139,10 @@ def printBanner():
     """
 
     theLogo = """
-                  _                                   _            _
-                 | |    ___  __ _  __ _  ___  _ _  _ | | __ _  __ | |__
-                 | |__ / _ \/ _` |/ _` |/ -_)| '_|| || |/ _` |/ _|| / /
-                 |____|\___/\__, |\__, |\___||_|   \__/ \__,_|\__||_\_\\
+                  _                              _            _
+                 | |    ___  __ _  __ _  _ _  _ | | __ _  __ | |__
+                 | |__ / _ \/ _` |/ _` || '_|| || |/ _` |/ _|| / /
+                 |____|\___/\__, |\__, ||_|   \__/ \__,_|\__||_\_\\
                             |___/ |___/
                                   Version: {}
     """.format(__version__)
@@ -126,9 +156,9 @@ def printVer():
     Called from: main
     """
 
-    print("LoggerJack - Log Parsing and Analytics tool")
-    print("Version " + __version__)
-    print("Created by " + __author__ + "\r\n")
+    print("                    LoggrJack - Log Parsing and Analysis tool")
+    print("                                 Version " + __version__)
+    print("                            Created by " + __author__ + "\r\n")
 
 def argCheck(args):
 
@@ -144,25 +174,35 @@ def argCheck(args):
         ### Log file (-l) and geolocation database (-m) arguments are always required unless the detailed version is being printed
 
         if not args.LogFile and not args.DBFile:
-            print ("\r\n[ERROR] You must pass the log file (-l) and geolocation database file (-m) with each analysis. Please try again.\r\n")
+            print ("\r\n[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] You must pass the log file (-l) and geolocation database file (-m) with each analysis. Please try again.\r\n")
             sys.exit()
+
+        ### A log type selection (-t) is always required and must be one of several defined numerical values between 1 and 4
+
+        if not args.logType:
+            print ("\r\n[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] You must pass the log type (-t) with each analysis. Please try again.\r\n")
+            sys.exit()
+        else:
+            if not 0 < int(args.logType) < 5:
+                print ("\r\n[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] You must pass specific numeric values (e.g., 1) for the log type (-t). Please review the help menu (-h) and try again.\r\n")
+                sys.exit()
 
         ### IP dump (-i) and the log summary (-s) can't be passed simultaneously
 
         if (args.lIPs and args.topNum):
-            print ("\r\n[ERROR] You cannot pass both the IP dump (-i) arguments and the summary function (-s) arguments simultaneously. Please select one and try again.\r\n")
+            print ("\r\n[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] You cannot pass both the IP dump (-i) arguments and the summary function (-s) arguments simultaneously. Please select one and try again.\r\n")
             sys.exit()
 
         ### Filter (-f) and exclude (-x) can't be passed simultaneously
 
         if (args.filterType and args.excludeType):
-            print ("\r\n[ERROR] You cannot pass both filter (-d) and exclude (-x) arguments simultaneously. Please select one and try again.\r\n")
+            print ("\r\n[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] You cannot pass both filter (-d) and exclude (-x) arguments simultaneously. Please select one and try again.\r\n")
             sys.exit()
 
         ### Filter (-f) and exclude (-x) require the data (-d) parameter
 
         if ((args.filterType or args.excludeType) and not args.modifierData):
-            print("\r\n[ERROR] Use of the filter (-f) and exclude (-x) arguments requires the Modifier Data (-d) argument. Please include the -d parameter and try again.\r\n")
+            print("\r\n[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] Use of the filter (-f) and exclude (-x) arguments requires the Modifier Data (-d) argument. Please include the -d parameter and try again.\r\n")
             sys.exit()
 
         ### Filter (-f) and exclude (-x) arguments can only be one of four values
@@ -170,19 +210,19 @@ def argCheck(args):
         if args.filterType:
             filterTest = args.filterType.lower()
             if (filterTest != "user") and (filterTest != "ip") and (filterTest != "country") and (filterTest != "domain"):
-                print("\r\n\[ERROR] The filter (-f) argument can only be one of four values (i.e. 'user', 'ip', 'country', 'domain').\r\n")
+                print("\r\n\[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] The filter (-f) argument can only be one of four values (i.e. 'user', 'ip', 'country', 'domain').\r\n")
                 sys.exit()
 
         if args.excludeType:
             excludeTest = args.excludeType.lower()
             if (excludeTest != "user") and (excludeTest != "ip") and (excludeTest != "country") and (excludeTest != "domain"):
-                print("\r\n\[ERROR] The exclude (-x) argument can only be one of four values (i.e. 'user', 'ip', 'country', 'domain').\r\n")
+                print("\r\n\[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] The exclude (-x) argument can only be one of four values (i.e. 'user', 'ip', 'country', 'domain').\r\n")
                 sys.exit()
 
         ### Have I Been Pwned lookups (-p) require the summary function (-s) parameter
 
         if args.hibpAPIKey and not args.topNum:
-            print("\r\n[ERROR] Have I Been Pwned lookups (-p) can only be passed with the log summary function (-s). Please select both and try again.\r\n")
+            print("\r\n[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] Have I Been Pwned lookups (-p) can only be passed with the log summary function (-s). Please select both and try again.\r\n")
             sys.exit()
 
 def catchSigs(signum, frame):
@@ -195,11 +235,12 @@ def catchSigs(signum, frame):
     ## Calculate the number of processed events vs the total calculated from the log
 
     remEvt = globalRes.resProc / globalRes.resTotal
-    remPerc = "{:.2%}".format(remEvt)
+    remPerc = str(f'{remEvt:.2%}')
 
     ## Print completion stats to screen and exit
 
-    print("\r\n[INFO] Caught a Keyboard Interrupt. Exiting with " + str(globalRes.resProc) + " of " + str(globalRes.resTotal) + " (" + remPerc + ") events processed.")
+    print("\r\n["+ txtColor.colInfo + "INFO" + txtColor.colNorm + "] Caught a Keyboard Interrupt. Exiting with " + str(f'{globalRes.resProc:,}') + " of " +
+        str(f'{globalRes.resTotal:,}') + " (" + remPerc + ") events processed.")
     sys.exit()
 
 def getFilterDict(args):
@@ -233,15 +274,17 @@ def getFilterDict(args):
     else:
         outAction = "Analysis Type: Detailed Analysis"
 
-    ## Determine if results will be filtered or excluded by user & create output string
+    ## Determine if results will be filtered or excluded by user & create output string. Note
+    ## that usernames passed in DOMAIN\USERNAME format will need to be converted back to a
+    ## single backslash (\) where the user escaped command input with a double backslash (\\)
 
     try:
         if args.filterType.lower() == "user" or args.excludeType.lower() == "user":
             for i in range(0,(len(modData))):
                 if userString == "":
-                    userString = modData[i]
+                    userString = modData[i].replace("\\\\","\\")
                 else:
-                    userString = userString + ", " + modData[i]
+                    userString = userString + ", " + modData[i].replace("\\\\","\\")
             if args.filterType:
                 userString = "   Users - Only " + userString
             else:
@@ -264,6 +307,14 @@ def getFilterDict(args):
                 ipString = "   IPs - All except " + ipString
     except:
         pass
+
+    ## If the user passed the -P argument to omit private IP addresses, add it to IP line
+
+    if args.privIP:
+        if ipString == "":
+            ipString = "   IPs - All except internal addresses"
+        else:
+            ipString += ", and internal addresses"
 
     ## Determine if results will be filtered or excluded by country & create output string
 
@@ -344,58 +395,51 @@ def getFilterDict(args):
 
     return outText
 
-def parseDates(fileText):
+def parseDates(eventDict):
 
     """
-    Function: Extracts the earliest and latest events from the logs (in UTC) and makes them readable
+    Function: Extracts the earliest and latest events from the log via eventDict and makes them readable
     Called from: main
     """
 
-    eventDates = []
-    eventTimes = []
+    ## Get the earliest and latest dates using the min and max functions, then format using DateTime. If the
+    ## time
 
-    ## Cycle through all line items, exctract dates, and add to dictionary
-
-    for i in range(2,len(fileText)-1):
-        eventDates.append(fileText[i].split(",")[0])
-
-    ## Get the earliest and latest dates using the min and max functions, then format using DateTime
-
-    earlyDate = min(eventDates)
-    cleanEarlyDate = datetime.datetime.strptime(earlyDate[:-2], '%Y-%m-%dT%H:%M:%S.%f').strftime('%m/%d/%Y, %H:%M:%S')
-    lateDate = max(eventDates)
-    cleanLateDate = datetime.datetime.strptime(lateDate[:-2], '%Y-%m-%dT%H:%M:%S.%f').strftime('%m/%d/%Y, %H:%M:%S')
+    earlyDate = min(sorted(eventDict.keys()))
+    cleanEarlyDate = datetime.strftime(earlyDate,'%m/%d/%Y, %H:%M:%S')
+    lateDate = max(sorted(eventDict.keys()))
+    cleanLateDate = datetime.strftime(lateDate,'%m/%d/%Y, %H:%M:%S')
 
     return cleanEarlyDate, cleanLateDate
 
-def parseO365(fileText, it, verbOut):
+def privIPCheck(lineIP):
 
     """
-    Function: Parses an O365 event log for use with LoggerJack's core function
-    Called from: detailedAnalysis
+    Function: Checks for internal / private addresses using (admittedly bad) regex
+    Called from: geoLook, parseO365Auth, parseIIS
     """
 
-    ## Set relevant event variables by splitting relevant log text
+    ## GeoIP doesn't always handle shortened IPv6 addresses correctly, so they need to be expanded
 
-    lineDateTime = fileText[it].split(",")[0]
-    lineIP = fileText[it].split(",")[13].split("\"")[6]
-    lineUserType = fileText[it].split("{")[1].split(",")[7].split(":")[1]
-    lineRecordType = fileText[it].split("{")[1].split(",")[4].split(":")[1]
-    lineGUID = fileText[it].split("{")[1].split(",")[12].split(":")[1].replace("\"","")
+    if ":" in lineIP:
 
-    ## Office 365 sometimes uses a GUID-style string in the UserID column instead of
-    ## an email address. This can be confusing during analysis. This section attempts to locate the
-    ## email address from a separate part of the logged event if the GUID is found the normal UserID column
+        ### IPv6 addresses with an appended IPv6 scope (e.g., %4) also cause trouble
 
-    if not "@" in fileText[it].split(",")[1] and "@" in fileText[it].split("{")[1].split(",")[6].split(":")[1].replace("\"",""):
-        if verbOut != 0:
-            lineUser = fileText[it].split("{")[1].split(",")[6].split(":")[1].replace("\"","") + " (converted from user GUID)"
+        if "%" in lineIP:
+            lineIP = ipaddress.ip_address(lineIP.split("%")[0]).exploded
         else:
-            lineUser = fileText[it].split("{")[1].split(",")[6].split(":")[1].replace("\"","")
-    else:
-        lineUser = fileText[it].split(",")[1]
+            lineIP = ipaddress.ip_address(lineIP).exploded
 
-    return [lineDateTime,lineIP,lineUser,lineUserType,lineRecordType,lineGUID]
+    if ((re.match(r'10\.\d{1,3}\.\d{1,3}\.\d{1,3}',lineIP)) or
+        (re.match(r'172\.(?:1[6-9]|2[0-9]|3[0-2])\.\d{1,3}\.\d{1,3}',lineIP)) or
+        (re.match(r'192\.168\.\d{1,3}\.\d{1,3}',lineIP)) or
+        (re.match(r'127\.\d{1,3}\.\d{1,3}\.\d{1,3}',lineIP)) or
+        (re.match(r'169\.254\.\d{1,3}\.\d{1,3}',lineIP)) or
+        (re.match(r'^fe80\:.*',lineIP)) or
+        (re.match(r'.*\:0001$',lineIP))):
+        return True
+    else:
+        return False
 
 def geoLook(lineIP,cityList):
 
@@ -406,17 +450,10 @@ def geoLook(lineIP,cityList):
 
     eventGeo = []
 
-    ## GeoIP doesn't always handle shortened IPv6 addresses correclty, so they need to be expanded
+    ## Check for internal / private address
 
-    if ":" in lineIP:
-        lineIP = ipaddress.ip_address(lineIP).exploded
-
-    ## Check for RFC 1918 addressing using (admittedly bad) regex
-
-    if ((re.match(r'10\.\d{1,3}\.\d{1,3}\.\d{1,3}',lineIP)) or
-        (re.match(r'172\.(?:1[6-9]|2[0-9]|3[0-2])\.\d{1,3}\.\d{1,3}',lineIP)) or
-        (re.match(r'192\.168\.\d{1,3}\.\d{1,3}',lineIP))):
-        geoInfo = ["No City","No State","RFC1918 (Private) Address"]
+    if privIPCheck(lineIP):
+        eventGeo = ["ERROR","ERROR","Internal / Private Address"]
     else:
 
         ### Get the geolocation of the address and build the return variable
@@ -449,11 +486,11 @@ def geoLook(lineIP,cityList):
 
             #### If geolocation fails, it's still easier to pass a list back to avoid index errors in other functions
 
-            eventGeo = ["GEOLOCATION","ERROR","UNKNOWN - GEOLOCATION ERROR"]
+            eventGeo = ["ERROR","ERROR","UNKNOWN - GEOLOCATION ERROR"]
 
     return eventGeo
 
-def whereAmI(cityList):
+def whereAmI(cityList,ipSite):
 
     """
     Function: Attempts to identify the user's current country so it can be used for reference
@@ -465,9 +502,10 @@ def whereAmI(cityList):
         ### Try to get public IP, then use it to call the geoLook function
         ### If successful, get the current country name and pass it back
 
-        currIPcall = requests.get('https://icanhazip.com')
+        currIPcall = requests.get('https://' + ipSite)
         currIP = currIPcall.text.strip("\n")
         currCountry = geoLook(currIP,cityList)[2]
+
     except:
 
         ### Attempt to get public IP failed, set currCountry variable accordingly
@@ -521,14 +559,14 @@ def getHIBP(uName,hibpKey,verbLvl):
     ## NOTE: If you modify this function in any way, it is your responsibility to ensure that your changes remain
     ## in compliance with the Have I Been Pwned API Acceptable Use guidelines (https://haveibeenpwned.com/api/v3)
 
-    ## Wait for 1 second so as not to be a burden or stack up HIBP queries
+    ## Wait for 1.5 seconds so as not to burden the HIBP API
 
     time.sleep(float(1.5))
 
     ## Create necessary request strings
 
     baseReqStr = "https://haveibeenpwned.com/api/v3/breachedaccount/" + uName
-    headerDict = {'hibp-api-key':hibpKey,'user-agent':'LoggerJack ' + __version__ + ' (Linux / Mac / Win)'}
+    headerDict = {'hibp-api-key':hibpKey,'user-agent':'LoggrJack ' + __version__ + ' (Linux / Mac / Win)'}
 
     ## Query HIBP and parse based on HTTP response code
 
@@ -538,23 +576,60 @@ def getHIBP(uName,hibpKey,verbLvl):
         if breachResp.status_code == 200:
             breachData = breachResp.json()
         elif breachResp.status_code == 401:
-            breachData = "[ERROR] The HIBP API key provided was not valid."
+            breachData = "[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] The HIBP API key provided was not valid."
         elif breachResp.status_code == 404:
             if verbLvl > 0:
                 breachData = "[OK] No breaches associated with this account."
             else:
                 breachData = "[OK]"
         elif breachResp.status_code == 429:
-            breachData = "[ERROR] The HIBP rate limit has been exceeded."
+            breachData = "[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] The HIBP rate limit has been exceeded."
         elif breachResp.status_code == 503:
-            breachData = "[ERROR] The HIBP service is unavailable."
+            breachData = "[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] The HIBP service is unavailable."
 
     except:
-        breachData = "[ERROR] Unable to query HIBP database. Check your Internet connection."
+        breachData = "[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] Unable to query HIBP database. Check your Internet connection."
 
     return breachData
 
-def createSummary(fileText,topNum,cityList,currLoc,verbLvl,hibpKey):
+def createIPLists(eventDict):
+
+    """
+    Function: Creates raw lists of IPv4 and IPv6 addresses from log file for use by other functions
+    Called from: createSummary, dumpIPs
+    """
+
+    allIPv4s = []
+    allIPv6s = []
+
+    ## Loop through eventDict and add addresses to IPv4 or IPv6 lists
+
+    for eachKey in eventDict.keys():
+
+        ### Check to see if the value is a list of lists (i.e., more
+        ### than one event took place at that time). If there are
+        ### multiple items for a given time, then each of those items
+        ### will need to be iterated.
+
+        if isinstance(eventDict[eachKey][0],list):
+            for i in range(0,len(eventDict[eachKey])):
+                if "." in eventDict[eachKey][i][1]:
+                    allIPv4s.append(eventDict[eachKey][i][1])
+                else:
+                    allIPv6s.append(eventDict[eachKey][i][1])
+        else:
+            if "." in eventDict[eachKey][1]:
+                allIPv4s.append(eventDict[eachKey][1])
+            else:
+                allIPv6s.append(eventDict[eachKey][1])
+
+    return allIPv4s, allIPv6s
+
+###############################################
+###       Analysis / Output Functions       ###
+###############################################
+
+def createSummary(eventDict,topNum,cityList,currLoc,verbLvl,hibpKey):
 
     """
     Function: Summarizes the data in the log file by top IPs and all users (per the -s parameter)
@@ -562,19 +637,9 @@ def createSummary(fileText,topNum,cityList,currLoc,verbLvl,hibpKey):
     """
 
     ## Part 1 dumps the top IP addresses (10 by default) by number of accesses
+    ## Start by getting raw lists of IPv4 and IPv6 addresses from eventDict
 
-    allIPv4s = []
-    allIPv6s = []
-
-    ## Loop through extracted log line data and add IPs addresses to the respective lists
-
-    for i in range(2,len(fileText)-1):
-        eventData = parseO365(fileText,i,verbLvl)
-        lineIP = eventData[1]
-        if "." in lineIP:
-            allIPv4s.append(lineIP)
-        else:
-            allIPv6s.append(lineIP)
+    allIPv4s, allIPv6s = createIPLists(eventDict)
 
     ## Created sorted Counter dictionary in decsending (most to least hits) order
 
@@ -584,42 +649,54 @@ def createSummary(fileText,topNum,cityList,currLoc,verbLvl,hibpKey):
     ## Print output. If the user entered a 'top n' number that's greater than the length of the list,
     ## lower it (topNum variable) to the length of the list to dodge index errors
 
-    print ("[INFO] The top " + str(topNum) + " most frequent IPv4 source addresses are:")
+    print ("["+ txtColor.colInfo + "INFO" + txtColor.colNorm + "] The top " + str(topNum) + " most frequent IPv4 source addresses are:")
 
     if topNum > len(sortedIPv4s):
         topNum = len(sortedIPv4s)
 
-    for i in range(0,topNum):
-        print (sortedIPv4s[i][1] + " - " + str(sortedIPv4s[i][0]) + " hit(s)")
+    if len(sortedIPv4s) == 0:
+        print("No source IP addresses met this criteria.")
+    else:
+        for i in range(0,topNum):
+            print (sortedIPv4s[i][1] + " - " + str(f'{sortedIPv4s[i][0]:,}') + " hit(s)")
 
-    print ("\r\n[INFO] The top " + str(topNum) + " most frequent IPv6 source addresses are:")
+    print ("\r\n["+ txtColor.colInfo + "INFO" + txtColor.colNorm + "] The top " + str(topNum) + " most frequent IPv6 source addresses are:")
 
     if topNum > len(sortedIPv6s):
         topNum = len(sortedIPv6s)
 
-    for i in range(0,topNum):
-        print (sortedIPv6s[i][1] + " - " + str(sortedIPv6s[i][0]) + " hit(s)")
+    if len(sortedIPv6s) == 0:
+        print("No source IP addresses met this criteria.")
+    else:
+        for i in range(0,topNum):
+            print (sortedIPv6s[i][1] + " - " + str(f'{sortedIPv6s[i][0]:,}') + " hit(s)")
 
     ## Part 2 checks through all IPs and provides notification when an IP doesn't align with the current country
     ## foundOne is used to notify the user if no results are found from this section
 
     foundOne = False
 
-    print ("\r\n[INFO] The following source IP addresses did NOT geolocate to your current country:")
+    print ("\r\n["+ txtColor.colErr + "WARN" + txtColor.colNorm + "] The following source IP addresses did NOT geolocate to your current country:")
 
     ## Cycle through each line data item, pull the geolocation, and see if it matches the user's current location
 
     for i in range(0,len(sortedIPv4s)):
         ipGeo = geoLook(sortedIPv4s[i][1],cityList)
-        if ipGeo[2] != currLoc:
-            print(sortedIPv4s[i][1] + " (" + ipGeo[0] + ", " + ipGeo[1] + ", " + ipGeo[2] + ") - " + str(sortedIPv4s[i][0]) + " hit(s)")
-            foundOne = True
+        if ipGeo[0] == "ERROR":
+            continue
+        else:
+            if ipGeo[2] != currLoc and not "Internal" in ipGeo[2]:
+                print(sortedIPv4s[i][1] + " (" + ipGeo[0] + ", " + ipGeo[1] + ", " + txtColor.colWarn + ipGeo[2] + txtColor.colNorm + ") - " + str(sortedIPv4s[i][0]) + " hit(s)")
+                foundOne = True
 
     for i in range(0,len(sortedIPv6s)):
         ipGeo = geoLook(sortedIPv6s[i][1],cityList)
-        if ipGeo[2] != currLoc:
-            print(sortedIPv6s[i][1] + " (" + ipGeo[0] + ", " + ipGeo[1] + ", " + ipGeo[2] + ") - " + str(sortedIPv6s[i][0]) + " hit(s)")
-            foundOne = True
+        if ipGeo[0] == "ERROR":
+            continue
+        else:
+            if ipGeo[2] != currLoc and not "Internal" in ipGeo[2]:
+                print(sortedIPv6s[i][1] + " (" + ipGeo[0] + ", " + ipGeo[1] + ", " + txtColor.colWarn + ipGeo[2] + txtColor.colNorm + ") - " + str(sortedIPv6s[i][0]) + " hit(s)")
+                foundOne = True
 
     ## If everything geolocated to the user's current location, let them know
 
@@ -644,32 +721,44 @@ def createSummary(fileText,topNum,cityList,currLoc,verbLvl,hibpKey):
 
         if verbLvl > 1:
             baseReqStr = "https://haveibeenpwned.com/api/v3/breaches/"
-            headerDict = {'hibp-api-key':hibpKey,'user-agent':'LoggerJack ' + __version__ + ', Linux / Mac / Win)'}
+            headerDict = {'hibp-api-key':hibpKey,'user-agent':'LoggrJack ' + __version__ + ', Linux / Mac / Win)'}
             allBreaches = requests.get(baseReqStr,headers=headerDict)
             allBreaches = allBreaches.json()
 
     ## Proceed with the rest of part 3
 
-    print("\r\n[INFO] Summarizing all user activity from this log:")
+    print("\r\n["+ txtColor.colInfo + "INFO" + txtColor.colNorm + "] Summarizing all user activity from this log:")
 
     userDict = {}
 
     ## Build the user dictionary with users as key and a list of IPs as the value
+    ## Each key / value pair needs to be tested for a list of lists in the value field
+    ## in instances where multiple events take at the same time.
 
-    globalRes.resProc = 2 # Set at 2 to account for removed lines from the log file
+    for thisKey in eventDict.keys():
+        if isinstance(eventDict[thisKey][0],list):
+            for eachVal in range(0,len(eventDict[thisKey])):
+                eventUser = eventDict[thisKey][eachVal][0]
+                eventIP = eventDict[thisKey][eachVal][1]
 
-    for i in range(2,len(fileText)-1):
-        eventData = parseO365(fileText,i,verbLvl)
-        lineIP = eventData[1]
-        lineUser = eventData[2]
-
-        if not lineUser in userDict.keys():
-            userDict[lineUser] = [lineIP]
+                if not eventUser in userDict.keys():
+                    userDict[eventUser] = [eventIP]
+                else:
+                    if not isinstance(userDict[eventUser],list):
+                        ##### Convert value of existing dictionary entry to a list to accomodate multiple entries
+                        userDict[eventUser] = [userDict[eventUser]]
+                    userDict[eventUser].append(eventIP)
         else:
-            if not isinstance(userDict[lineUser],list):
-                ##### Convert value of existing dictionary entry to a list to accomodate multiple entries
-                userDict[lineUser] = [userDict[lineUser]]
-            userDict[lineUser].append(lineIP)
+            eventUser = eventDict[thisKey][0]
+            eventIP = eventDict[thisKey][1]
+
+            if not eventUser in userDict.keys():
+                userDict[eventUser] = [eventIP]
+            else:
+                if not isinstance(userDict[eventUser],list):
+                    ##### Convert value of existing dictionary entry to a list to accomodate multiple entries
+                    userDict[eventUser] = [userDict[eventUser]]
+                userDict[eventUser].append(eventIP)
 
         ### Iterate the processed event counter
 
@@ -699,12 +788,18 @@ def createSummary(fileText,topNum,cityList,currLoc,verbLvl,hibpKey):
 
         ### Build the base output string by iterating through geoList
 
-        reportStr = "User " + userName + " - " + str(len(ipList)) + " authentication(s) from " + geoList[0]
+        if geoList[0] != currLoc and not "Internal" in geoList[0]:
+            reportStr = "User " + userName + " - " + str(f'{len(ipList):,}') + " authentication(s) from " + txtColor.colWarn + geoList[0] + txtColor.colNorm
+        else:
+            reportStr = "User " + userName + " - " + str(f'{len(ipList):,}') + " authentication(s) from " + geoList[0]
 
         ### If necessary, add additional source countries, then print the output
 
         for i in range(1,len(geoList)):
-            reportStr = reportStr + ", " + geoList[i]
+            if geoList[i] != currLoc and not "Internal" in geoList[i]:
+                reportStr += ", " + txtColor.colWarn + geoList[i] + txtColor.colNorm
+            else:
+                reportStr += ", " + geoList[i]
 
         print (reportStr)
 
@@ -721,20 +816,20 @@ def createSummary(fileText,topNum,cityList,currLoc,verbLvl,hibpKey):
                 thisKey = thisKey.split("(")[0].strip()
 
             if not re.fullmatch(emailCheck,thisKey.lower()):
-                print("    *HIBP Status: [ERROR] Username doesn't appear to be a valid email address.")
+                print("    *HIBP Status: [" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] Username doesn't appear to be a valid email address.")
             else:
 
                 userBreach = getHIBP(thisKey,hibpKey,verbLvl)
 
-                if ("[OK]" in userBreach) or ("[ERROR]" in userBreach):
+                if ("[OK]" in userBreach) or ("[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "]" in userBreach):
                     print("    *HIBP Status: " + userBreach)
                 else:
                     if verbLvl == 0:
-                        print("    *HIBP Status: [PWNED]")
+                        print("    *HIBP Status: [" + txtColor.colWarn + "PWNED" + txtColor.colNorm + "]")
                     if verbLvl == 1:
-                        print("    *HIBP Status: [PWNED] User account found in " + str(len(userBreach)) + " breaches.")
+                        print("    *HIBP Status: [" + txtColor.colWarn + "PWNED" + txtColor.colNorm + "] User account found in " + str(len(userBreach)) + " breaches.")
                     elif verbLvl > 1:
-                        print("    *HIBP Status: [PWNED] User account found in the following " + str(len(userBreach)) + " breaches:")
+                        print("    *HIBP Status: [" + txtColor.colWarn + "PWNED" + txtColor.colNorm + "] User account found in the following " + str(len(userBreach)) + " breaches:")
 
                         ####### Create necessary request strings
 
@@ -754,7 +849,7 @@ def createSummary(fileText,topNum,cityList,currLoc,verbLvl,hibpKey):
                             ######## Passwords, usernames, and email addresses should always
                             ######## be included as critical data types
 
-                            if "Password" in allBreaches[breachIdx]['DataClasses']:
+                            if "Passwords" in allBreaches[breachIdx]['DataClasses']:
                                 breachStr = "Passwords"
 
                             if "Email addresses" in allBreaches[breachIdx]['DataClasses']:
@@ -781,35 +876,28 @@ def createSummary(fileText,topNum,cityList,currLoc,verbLvl,hibpKey):
                             ######## already there from the critical items above
 
                             for dType in range(0, (upperLimit - len(breachStr.split(",")))):
-                                if (len(breachStr) == 0) and not (allBreaches[breachIdx]['DataClasses'][dType] in breachStr):
-                                    breachStr = allBreaches[breachIdx]['DataClasses'][dType]
-                                elif not (allBreaches[breachIdx]['DataClasses'][dType] in breachStr):
-                                    breachStr = breachStr + ", " + allBreaches[breachIdx]['DataClasses'][dType]
+                                if (len(breachStr) == 0):
+                                    breachStr = allBreaches[breachIdx]['DataClasses'][dType].capitalize()
+                                elif not (allBreaches[breachIdx]['DataClasses'][dType].lower() in breachStr.lower()):
+                                    breachStr = breachStr + ", " + allBreaches[breachIdx]['DataClasses'][dType].lower()
 
                             ######## Add the breach name to the front and print the final output string
 
                             breachStr = breachName + " - " + breachStr
                             print("        -" + breachStr)
 
-def dumpIPs(fileText,verbLvl,cityList):
+def dumpIPs(eventDict,verbLvl,cityList,currLoc,noPrivs):
 
     """
     Function: Dumps only a sorted list of unique IPs (per the -i parameter)
     Called from: main
     """
 
-    allIPv4s = []
-    allIPv6s = []
     allIPs = []
 
-    ## Loop through extracted log text and add addresses to IPv4 or IPv6 lists
+    ## Get raw lists of IPv4 and IPv6 addresses from eventDict
 
-    for i in range(2,len(fileText)-1):
-        lineIP = fileText[i].split(",")[13].split("\"")[6]
-        if "." in lineIP:
-            allIPv4s.append(lineIP)
-        else:
-            allIPv6s.append(lineIP)
+    allIPv4s, allIPv6s = createIPLists(eventDict)
 
     ## Create ordered list of unique IP addresses in ascending order
 
@@ -827,91 +915,68 @@ def dumpIPs(fileText,verbLvl,cityList):
     ## Print each IP to screen, including geolocation info if higher verbosity is set
 
     for i in range(0,len(allIPs)):
+        lineGeo = geoLook(allIPs[i],cityList)
+
         if verbLvl > 0:
-            lineGeo = geoLook(allIPs[i],cityList)
 
             if verbLvl == 1:
-                print(allIPs[i] + " (" + lineGeo[2] + ")")
+                if lineGeo[2] != currLoc and not "Internal" in lineGeo[2]:
+                    print(allIPs[i] + " (" + txtColor.colWarn + lineGeo[2] + txtColor.colNorm + ")")
+                else:
+                    print(allIPs[i] + " (" + lineGeo[2] + ")")
 
             if verbLvl > 1:
-                print(allIPs[i] + " (" + lineGeo[0] + ", " + lineGeo[1] + ", " + lineGeo[2] + ")")
+                if lineGeo[1] == "ERROR":
+                    print(allIPs[i] + " (" + lineGeo[2] + ")")
+                else:
+                    if lineGeo[2] != currLoc and not "Internal" in lineGeo[2]:
+                        print(allIPs[i] + " (" + lineGeo[0] + ", " + lineGeo[1] + ", " + txtColor.colWarn + lineGeo[2] + txtColor.colNorm + ")")
+                    else:
+                        print(allIPs[i] + " (" + lineGeo[0] + ", " + lineGeo[1] + ", " + lineGeo[2] + ")")
 
         else:
             print(allIPs[i])
 
     return [len(sortedIPv4s),len(sortedIPv6s)]
 
-def detailedAnalysis(fileText,cityList,args,currLoc):
+def detailedAnalysis(eventDict,cityList,args,currLoc,verbLvl):
 
     """
     Function: Parses the event log line by line and provides an ordered, filtered output with geolocation info added
     Called from: main
     """
 
-    eventDict = {}
-    globalRes.resProc = 2 # Set at 2 to account for header lines from the log file
-    globalRes.resPrint = 2 # Set at 2 to account for header lines from the log file
-
-    for i in range(2,len(fileText)-1):
-
-        #First confirm that this event shouldn't be thrown out for having garbage text
-
-        if args.logGarbage:
-            if "FaultDomainRedirect" in fileText[i]:
-                continue
-
-        #Send the fileText variable to the correct parser with the current iterator number
-
-        lineData = parseO365(fileText,i,args.verbOut)
-
-        #Transcribe the values from the returned lineData list to variables that make sense
-
-        lineDateTime = lineData[0]
-        lineIP = lineData[1]
-        lineUser = lineData[2]
-        lineUserType = lineData[3] + " - " + logUserType[lineData[3]]
-        lineRecordType = lineData[4] + " - " + logRecordType[lineData[4]]
-        lineGUID = lineData[5]
-
-        if not lineDateTime in eventDict.keys():
-            eventDict[lineDateTime] = [lineUser,lineIP,lineUserType,lineRecordType,lineGUID]
-        else:
-            if not isinstance(eventDict[lineDateTime][0],list):
-                ####Convert value to a list to accomodate multiple values per key
-                eventDict[lineDateTime] = [eventDict[lineDateTime]]
-            eventDict[lineDateTime].append([lineUser,lineIP,lineUserType,lineRecordType,lineGUID])
-
-    ##Sort event dictionary by earliest to latest event, then extract relevant data
+    ## Sort event dictionary by earliest to latest event, then extract relevant data
 
     for thisKey in sorted(eventDict.keys()):
         if isinstance(eventDict[thisKey][0],list):
             for eachVal in range(0,len(eventDict[thisKey])):
-                eventDate = datetime.datetime.strptime(thisKey[:-2], '%Y-%m-%dT%H:%M:%S.%f').strftime('%m/%d/%Y')
-                eventTime = datetime.datetime.strptime(thisKey[:-2], '%Y-%m-%dT%H:%M:%S.%f').strftime('%H:%M:%S')
+                eventDate = datetime.strftime(thisKey, '%m/%d/%Y')
+                eventTime = datetime.strftime(thisKey, '%H:%M:%S')
                 eventUser = eventDict[thisKey][eachVal][0]
                 eventIP = eventDict[thisKey][eachVal][1]
-                eventUType = eventDict[thisKey][eachVal][2]
-                eventRType = eventDict[thisKey][eachVal][3]
-                eventUGUID = eventDict[thisKey][eachVal][4]
+                eventExt1 = eventDict[thisKey][eachVal][2]
+                eventExt2 = eventDict[thisKey][eachVal][3]
+                eventExt3 = eventDict[thisKey][eachVal][4]
                 eventGeo = geoLook(eventIP, cityList)
-                eventInfo = [eventDate,eventTime,eventUser,eventGeo[0],eventGeo[1],eventGeo[2],eventIP,eventUType,eventRType,eventUGUID]
+                eventInfo = [eventDate,eventTime,eventUser,eventGeo[0],eventGeo[1],eventGeo[2],eventIP,eventExt1,eventExt2,eventExt3]
 
-                resultsOut(eventInfo,args,currLoc)
+                resultsOut(eventInfo,args,currLoc,verbLvl)
 
         else:
-            eventDate = datetime.datetime.strptime(thisKey[:-2], '%Y-%m-%dT%H:%M:%S.%f').strftime('%m/%d/%Y')
-            eventTime = datetime.datetime.strptime(thisKey[:-2], '%Y-%m-%dT%H:%M:%S.%f').strftime('%H:%M:%S')
+            eventDate = datetime.strftime(thisKey, '%m/%d/%Y')
+            eventTime = datetime.strftime(thisKey, '%H:%M:%S')
             eventUser = eventDict[thisKey][0]
             eventIP = eventDict[thisKey][1]
-            eventUType = eventDict[thisKey][2]
-            eventRType = eventDict[thisKey][3]
-            eventUGUID = eventDict[thisKey][4]
+            eventExt1 = eventDict[thisKey][2]
+            eventExt2 = eventDict[thisKey][3]
+            eventExt3 = eventDict[thisKey][4]
             eventGeo = geoLook(eventIP, cityList)
-            eventInfo = [eventDate,eventTime,eventUser,eventGeo[0],eventGeo[1],eventGeo[2],eventIP,eventUType,eventRType,eventUGUID]
+            eventInfo = [eventDate,eventTime,eventUser,eventGeo[0],eventGeo[1],eventGeo[2],eventIP,eventExt1,eventExt2,eventExt3]
 
-            resultsOut(eventInfo,args,currLoc)
+            resultsOut(eventInfo,args,currLoc,verbLvl)
 
-def resultsOut(eventInfo,args,currLoc):
+def resultsOut(eventInfo,args,currLoc,verbLvl):
 
     """
     Function: Formats and prints per-line output based upon the selections passed by the user
@@ -939,23 +1004,23 @@ def resultsOut(eventInfo,args,currLoc):
     if args.filterType:
         if args.filterType.lower() == "user":
             for itemCheck in args.modifierData.split(","):
-                if re.match(itemCheck, eventInfo[2]):   # Had to change to match from fullmatch because
-                    eventMatch = True                   # of O365 UserIDs in some events
+                if re.match(itemCheck, eventInfo[2],re.IGNORECASE):   # Had to change to match from fullmatch because
+                    eventMatch = True                                 # of O365 UserIDs in some events
                     break
         elif args.filterType.lower() == "ip":
             for itemCheck in args.modifierData.split(","):
-                if re.fullmatch(itemCheck, eventInfo[6]):
+                if re.fullmatch(itemCheck, eventInfo[6],re.IGNORECASE):
                     eventMatch = True
                     break
         elif args.filterType.lower() == "country":
             for itemCheck in args.modifierData.split(","):
-                if re.fullmatch(itemCheck, eventInfo[5]):
+                if re.fullmatch(itemCheck, eventInfo[5],re.IGNORECASE):
                     eventMatch = True
                     break
         elif args.filterType.lower() == "domain":
             for itemCheck in args.modifierData.split(","):
                 if "@" in eventInfo[2]:
-                    if re.fullmatch(itemCheck, eventInfo[2].split("@")[1]):
+                    if re.fullmatch(itemCheck, eventInfo[2].split("@")[1],re.IGNORECASE):
                         eventMatch = True
                         break
 
@@ -964,23 +1029,23 @@ def resultsOut(eventInfo,args,currLoc):
     elif args.excludeType:
         if args.excludeType.lower() == "user":
             for itemCheck in args.modifierData.split(","):
-                if not re.match(itemCheck, eventInfo[2]):  # Had to change to match from fullmatch because
-                    eventMatch = True                      # of O365 UserIDs in some events
+                if not re.match(itemCheck, eventInfo[2],re.IGNORECASE):  # Had to change to match from fullmatch because
+                    eventMatch = True                                    # of O365 UserIDs in some events
                     break
         elif args.excludeType.lower() == "ip":
             for itemCheck in args.modifierData.split(","):
-                if not re.fullmatch(itemCheck, eventInfo[6]):
+                if not re.fullmatch(itemCheck, eventInfo[6],re.IGNORECASE):
                     eventMatch = True
                     break
         elif args.excludeType.lower() == "country":
             for itemCheck in args.modifierData.split(","):
-                if not re.fullmatch(itemCheck, eventInfo[5]):
+                if not re.fullmatch(itemCheck, eventInfo[5],re.IGNORECASE):
                     eventMatch = True
                     break
         elif args.excludeType.lower() == "domain":
             for itemCheck in args.modifierData.split(","):
                 if "@" in eventInfo[2]:
-                    if not re.fullmatch(itemCheck, eventInfo[2].split("@")[1]):
+                    if not re.fullmatch(itemCheck, eventInfo[2].split("@")[1],re.IGNORECASE):
                         eventMatch = True
                         break
 
@@ -994,30 +1059,234 @@ def resultsOut(eventInfo,args,currLoc):
 
     if eventMatch == True:
         globalRes.resPrint += 1
-        if args.verbOut == 1:
-            print(eventInfo[0] + ", " + eventInfo[1] + " - " + eventInfo[2] + " - " + eventInfo[6] + " (" + eventInfo[3] + ", " + eventInfo[4] + ", " + eventInfo[5] + ")")
-        elif args.verbOut == 2:
-            print(eventInfo[0] + ", " + eventInfo[1] + " - " + eventInfo[2] + " - " + eventInfo[6] + " (" + eventInfo[3] + ", " + eventInfo[4] + ", " + eventInfo[5] + ")")
-            print("    User GUID: " + eventInfo[9])
-            print("    User Type: " + eventInfo[7])
-            print("    Record Type: " + eventInfo[8])
-        elif args.verbOut == 3:
-            print(eventInfo[0] + ", " + eventInfo[1] + " - " + eventInfo[2] + " - " + eventInfo[6] + " (" + eventInfo[3] + ", " + eventInfo[4] + ", " + eventInfo[5] + ")")
-            print("    User GUID: " + eventInfo[9])
-            print("    User Type: " + eventInfo[7])
-            print("    Record Type: " + eventInfo[8])
-            wiInfo = getWhois(eventInfo[6])
-            if wiInfo == "WHOIS lookup failed.":
-                print("    [ERROR] " + wiInfo)
+
+        ### If user passed higher verbosity levels, additional info levels need to be printed
+
+        if verbLvl > 0:
+
+            #### Level one adds city and region informaion to geolocation
+
+            if "Internal" in eventInfo[5]:
+                print(eventInfo[0] + ", " + eventInfo[1] + " - " + eventInfo[2] + " - " + eventInfo[6] + " (" + eventInfo[5] + ")")
             else:
-                print("    IP ASN: " + wiInfo[0])
-                print("    IP Registrar: " + wiInfo[1])
-                print("    IP ASN Description: " + wiInfo[2])
-                print("    IP Org Name: " + wiInfo[3])
+                if eventInfo[5] != currLoc:
+                    print(eventInfo[0] + ", " + eventInfo[1] + " - " + eventInfo[2] + " - " + eventInfo[6] + " (" + eventInfo[3] + ", " + eventInfo[4] + ", " +
+                        txtColor.colWarn + eventInfo[5] + txtColor.colNorm + ")")
+                else:
+                    print(eventInfo[0] + ", " + eventInfo[1] + " - " + eventInfo[2] + " - " + eventInfo[6] + " (" + eventInfo[3] + ", " + eventInfo[4] + ", " + eventInfo[5] + ")")
+
+
+            #### Level two adds the extra information pulled for each log type
+
+            if verbLvl > 1:
+                print("    " + extInfLbl.extInfLbl1 + ": " + eventInfo[7])
+                print("    " + extInfLbl.extInfLbl2 + ": " + eventInfo[8])
+                print("    " + extInfLbl.extInfLbl3 + ": " + eventInfo[9])
+
+            #### Level three adds WHOIS information for the IP address
+
+            if verbLvl > 2:
+                wiInfo = getWhois(eventInfo[6])
+                if wiInfo == "WHOIS lookup failed.":
+                    print("    [" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] " + wiInfo)
+                else:
+                    print("    IP ASN: " + wiInfo[0])
+                    print("    IP Registrar: " + wiInfo[1])
+                    print("    IP ASN Description: " + wiInfo[2])
+                    print("    IP Org Name: " + wiInfo[3])
         else:
-            print(eventInfo[0] + ", " + eventInfo[1] + " - " + eventInfo[2] + " - " + eventInfo[6] + " (" + eventInfo[5] + ")")
+
+            ##### No extra verbosity, print the basic information
+
+            if eventInfo[5] != currLoc and not "Internal" in eventInfo[5]:
+                print(eventInfo[0] + ", " + eventInfo[1] + " - " + eventInfo[2] + " - " + eventInfo[6] + " (" + txtColor.colWarn + eventInfo[5] + txtColor.colNorm + ")")
+            else:
+                print(eventInfo[0] + ", " + eventInfo[1] + " - " + eventInfo[2] + " - " + eventInfo[6] + " (" + eventInfo[5] + ")")
     else:
         return
+
+###############################################
+###           Log Parser Functions          ###
+###############################################
+
+# NOTE! eventDict key / value pairs need to follow the same order when parsing all logs
+# The order should always be:
+#
+# Key: Event timestamp (combined as a datetime object)
+# Value: Username, Source IP address, exra info 1, extra info 2, extra info 3
+
+def parseO365Auth(fileText, verbLvl, noPrivs, noGarbage):
+
+    """
+    Function: Parses an O365 event log for use with LoggrJack's core function
+    Called from: Main
+    """
+
+    ## Count the total number of events in the file and update the global variable
+    ## O365 auth logs tend to have one garbage header line that needs to be skipped
+
+    globalRes.resTotal = len(fileText) - 1
+
+    ## Begin reading through each line of the file and extracting the necessary data
+
+    eventDict = {}
+
+    for i in range(1,len(fileText)):
+
+        ### If the user has elected to omit garbage events (-g), events containing
+        ### 'FaultDomainRedirect' are benign redirects that don't provide much value
+        ### and clutter logs. Events with a 'Sync_Service' username can also be omitted.
+
+        if noGarbage:
+            if "FaultDomainRedirect" in fileText[i] or "Sync_Service" in fileText[i]:
+                continue
+
+        ### Split text by most common delimiter, in this case a comma
+
+        splitTxt = fileText[i].split(",")
+
+        ### Set relevant event variables by splitting relevant log text
+
+        lineDateTime = datetime.strptime(splitTxt[0],"%Y-%m-%dT%H:%M:%S.%f0Z")
+        lineIP = splitTxt[13].split("\"")[6]
+        extInf1 = fileText[i].split("{")[1].split(",")[7].split(":")[1] # User Type
+        extInf2 = fileText[i].split("{")[1].split(",")[4].split(":")[1] # Record Type
+        extInf3 = re.findall(r'\"\"Actor\"\"\:\[\{\"\"ID\"\"\:\"\"(.*?)\"\"\,\"',fileText[i])[0] # User GUID
+
+        ### Filter out this line item if the source IP is an internal /
+        ### private address and the user has set the -P parameter
+
+        if privIPCheck(lineIP) and noPrivs:
+            continue
+
+        ### Microsoft 365 sometimes uses a GUID-style string in the UserID column instead of
+        ### an email address. This can be confusing during analysis. This section attempts to locate the
+        ### email address from a separate part of the logged event if the GUID is found the normal UserID column
+
+        if not "@" in splitTxt[1] and "@" in fileText[i].split("{")[1].split(",")[6].split(":")[1].replace("\"",""):
+            if verbLvl != 0:
+                lineUser = fileText[i].split("{")[1].split(",")[6].split(":")[1].replace("\"","") + " (converted from user GUID)"
+            else:
+                lineUser = fileText[i].split("{")[1].split(",")[6].split(":")[1].replace("\"","")
+        else:
+            lineUser = splitTxt[1]
+
+        ### Add some extra detail to the UserType and RecordType output based
+        ### on the Microsoft 365 event dicts included above
+
+        extInf1 += " - " + logUserType[extInf1]
+        extInf2 += " - " + logRecordType[extInf2]
+
+        ### Add this event to the master event dictionary
+
+        if not lineDateTime in eventDict.keys():
+            eventDict[lineDateTime] = [lineUser,lineIP,extInf1,extInf2,extInf3]
+        else:
+            if not isinstance(eventDict[lineDateTime][0],list):
+                ##### Convert value to a list to accomodate multiple values per key
+                eventDict[lineDateTime] = [eventDict[lineDateTime]]
+            eventDict[lineDateTime].append([lineUser,lineIP,extInf1,extInf2,extInf3])
+
+    return eventDict
+
+def parseIIS(fileText, verbLvl, noPrivs, noGarbage, emlDomain):
+
+    """
+    Function: Parses an IIS log in W3C format for use with LoggrJack's core function
+    Called from: Main
+    """
+
+    ## Count the total number of events in the file and update the global variable
+    ## IIS logs tend to have four garbage header lines that need to be skipped
+
+    globalRes.resTotal = len(fileText) - 4
+
+    ## Begin reading through each line of the file and extracting the necessary data
+
+    eventDict = {}
+
+    for i in range(4,len(fileText)):
+
+        ### IIS logs sometimes contain headers in the middle of the file. Those lines
+        ### begin with a # and can be skipped.
+
+        if not fileText[i][0] == "#":
+
+            ### Split text by most common delimiter, in this case a space
+
+            splitTxt = fileText[i].split(" ")
+
+            ### If the user has elected to omit garbage events (-g), events containing
+            ### 'HealthMailbox' are internal maintenance and can be omitted. Also, some
+            ### events with an empty username (marked "-" by IIS) may be skipped because
+            ### they don't provide much value and clutter logs.
+
+            if noGarbage:
+                if "HealthMailbox" in fileText[i] or splitTxt[7] == "-":
+                    continue
+
+            ### Set relevant event variables by splitting log text
+
+            lineUser = "" # Hold for later
+            lineDateTime = datetime.strptime(splitTxt[0] + " " + splitTxt[1],"%Y-%m-%d %H:%M:%S")
+            lineIP = splitTxt[8]
+            extInf1 = splitTxt[4] # URI stem
+            extInf2 = splitTxt[9] # User-Agent string
+            extInf3 = splitTxt[3] + " (" + splitTxt[11] + " response)" # Method and server response
+
+            ### Filter out this line item if the source IP is an internal /
+            ### private address and the user has set the -P parameter
+
+            if privIPCheck(lineIP) and noPrivs:
+                continue
+
+            ### IIS logs list usernames in DOMAIN\USERNAME format, which can't be used for data
+            ### enrichment functions like HIBP calls. If the user passes the Domain option (-D)
+            ### LoggrJack will attempt to append that domain to identified user accounts to
+            ### create an email address. If this can't be accomplished, LoggrJack falls back to
+            ### the DOMAIN\USERNAME format.
+
+            if emlDomain:
+
+                if emlDomain == "getDefault":
+
+                    emlDomain = re.findall(r'\@(.*?)[\&\:]',splitTxt[5]) # Attempt to extract domain from event metadata
+
+                    if len(emlDomain) > 0:
+                        emlDomain = emlDomain[0]
+
+                if len(emlDomain) > 0:
+
+                    #### Differentiate between usernames that have the NetBIOS domain included versus
+                    #### those that do not, and add the email domain as appropriate.
+
+                    if "\\" in splitTxt[7]:
+                        lineUser = splitTxt[7].split("\\")[1] + "@" + emlDomain
+                    elif "/" in splitTxt[7]:
+                        lineUser = splitTxt[7].split("/")[1] + "@" + emlDomain
+                    else:
+                        lineUser = splitTxt[7] + "@" + emlDomain
+
+            ### Set username to default if an email address format couldn't be created
+
+            if len(lineUser) == 0:
+                lineUser = splitTxt[7]
+
+            ### Add this event to the master event dictionary
+
+            if not lineDateTime in eventDict.keys():
+                eventDict[lineDateTime] = [lineUser,lineIP,extInf1,extInf2,extInf3]
+            else:
+                if not isinstance(eventDict[lineDateTime][0],list):
+                    ##### Convert value to a list to accomodate multiple values per key
+                    eventDict[lineDateTime] = [eventDict[lineDateTime]]
+                eventDict[lineDateTime].append([lineUser,lineIP,extInf1,extInf2,extInf3])
+
+    return eventDict
+
+###############################################
+###              Main Function              ###
+###############################################
 
 def main():
 
@@ -1034,45 +1303,76 @@ def main():
 
     signal.signal(signal.SIGINT, catchSigs)
 
+    ## Initialize Colorama early so errors thrown on Windows prior to
+    ## arg parsing won't contain ANSI codes
+
+    try:
+        colorama.init()
+    except:
+        print("[ERROR] Failed to initialize Colorama. Exiting.")
+        sys.exit()
+
     ## Create args and arg parser
 
     parser = argparse.ArgumentParser(
         usage='python %s -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] [OPTIONS]' % sys.argv[0],
         add_help=False,
-        description='LoggerJack - Simplify Text-Based Log Analysis',
-        formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog,max_help_position=45)
-    )
-    reqArgs = parser.add_argument_group('required arguments')
-    optArgs = parser.add_argument_group('optional arguments')
+        description='LoggrJack - Simplify Text-Based Log Analysis',
+        formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog,max_help_position=45))
 
-    reqArgs.add_argument('-l','--log',required=False,help='Sets the path to the Office365 log file in CSV format',dest='LogFile')
+    reqArgs = parser.add_argument_group('Required Arguments')
+    funArgs = parser.add_argument_group('Function Arguments')
+    optArgs = parser.add_argument_group('Optional Arguments')
+
+    reqArgs.add_argument('-l','--log',required=False,help='Sets the path to the log file to be analyzed',dest='LogFile')
     reqArgs.add_argument('-m','--mmdb',required=False,help='Sets the path to the MaxMind GeoIP2 database in mmdb format',dest='DBFile')
+    reqArgs.add_argument('-t','--type',required=False,help='Designates the log type being submitted for analysis:\r\n \
+        *1 - Microsoft 365 Auth (User Logged In)\r\n \
+        *2 - Microsoft 365 General - COMING SOON \r\n \
+        *3 - Azure Active Directory - COMING SOON\r\n \
+        *4 - Microsoft IIS (All events in W3C format)\r\n \
+        *5 - Debian Auth.log - COMING SOON',dest='logType')
+
+    funArgs.add_argument('-s','--summary',required=False,help='Provides a summary of the data found in the log file provided with the top n number of hits (default: 10)',type=int,dest='topNum',nargs='?',const=10)
+    funArgs.add_argument('-i','--ips',required=False,help='Dumps a list of all unique IP addresses found in the log file',dest='lIPs',action='store_true')
 
     optArgs.add_argument('-h','--help',help='Shows the command help',action='help')
     optArgs.add_argument('-V','--version',required=False,help='Prints version information',dest='printVer',action='store_true')
-    optArgs.add_argument('-v','--verbose',required=False,help='Increases the verbosity of all output (e.g. printing city and region in addition to country)',default=0,dest='verbOut',action='count')
-    optArgs.add_argument('-i','--ips',required=False,help='Dumps a list of all unique IP addresses found in the log file',dest='lIPs',action='store_true')
-    optArgs.add_argument('-s','--summary',required=False,help='Provides a summary of the data found in the log file provided with the top n number of hits (default: 10)',type=int,dest='topNum',nargs='?',const=10)
+    optArgs.add_argument('-c','--color',required=False,help='Disables coloration of text output',dest='noColor',action='store_true')
+    optArgs.add_argument('-e','--email',required=False,help='Designates an email domain that LoggrJack can use to create email addresses from NetBIOS-formatted usernames',dest='eDomain',nargs='?',type=str,const='getDefault')
+    optArgs.add_argument('-M','--myip',required=False,help='Sets site used to check public IP for determining current location (default: icanhazip.com)',dest='myIP',default='icanhazip.com')
+    optArgs.add_argument('-v','--verbose',required=False,help='Increases the verbosity of all output (e.g., printing city and region in addition to country)',default=0,dest='verbOut',action='count')
     optArgs.add_argument('-k','--knowncity',required=False,help='Suppresses results that do not geolocate to a known city',dest='kCity',action='store_true')
-    optArgs.add_argument('-w','--warning',required=False,help='Filters results to only show those from outside the current nation',dest='warnIP',nargs='?',type=str,const='getDefault')
+    optArgs.add_argument('-w','--warning',required=False,help='Filters results to only show connections originating from outside the current country',dest='warnIP',nargs='?',type=str,const='getDefault')
     optArgs.add_argument('-g','--garbage',required=False,help='Removes events that are benign and clutter logs (e.g. auth redirects)',dest='logGarbage',action='store_true')
+    optArgs.add_argument('-P','--private',required=False,help='Removes internal or private (RFC 1918) IP addresses from output and shows only public addresses',dest='privIP',action='store_true')
     optArgs.add_argument('-p','--pwned',required=False,help='Queries the HaveIBeenPwned API to determine if logged email addresses have been compromised in a breach (Requires API key)',dest='hibpAPIKey')
-    optArgs.add_argument('-f','--filter',required=False,help='Tells GeO365 to filter results by a given value from the options shown below (requires the -d parameter):\r\n \
-        *user - Filter results to only show a specific user or users ("e.g. andytaylor@foo.com")\r\n \
+    optArgs.add_argument('-f','--filter',required=False,help='Tells LoggrJack to filter results by a given value from the options shown below (requires the -d parameter):\r\n \
+        *user - Filter results to only show a specific user or users ("e.g. andytaylor@example.com")\r\n \
         *ip - Filter results to only show a specfic IP address or addresses (e.g. "1.2.3.4")\r\n \
         *country - Filter results to only show a specific country or countries (e.g. "Netherlands")\r\n \
-        *domain - Filer results to only show a specific domain (e.g. "bar.com")',dest='filterType')
-    optArgs.add_argument('-x','--exclude',required=False,help='Tells GeO365 to exclude a specific value from overal results (requires the -d parameter):\r\n \
-        *user - Remove a specific user or users from the overall results ("e.g. andytaylor@foo.com")\r\n \
+        *domain - Filter results to only show a specific domain (e.g. "example.com")',dest='filterType')
+    optArgs.add_argument('-x','--exclude',required=False,help='Tells LoggrJack to exclude a specific value from overall results (requires the -d parameter):\r\n \
+        *user - Remove a specific user or users from the overall results ("e.g. andytaylor@example.com")\r\n \
         *ip - Remove a specific IP address or addresses from the overall results (e.g. "1.2.3.4")\r\n \
         *country - Remove a specific country or countries from the overall results (e.g. "Netherlands")\r\n \
-        *domain - Remove a specific domain from the overall results (e.g. "bar.com")',dest='excludeType')
-    optArgs.add_argument('-d','--data',required=False,help='Passes the specific data for filtering or exclusion to LoggerJack; multiple, comma-separated values can be provided',dest='modifierData')
+        *domain - Remove a specific domain from the overall results (e.g. "example.com")',dest='excludeType')
+    optArgs.add_argument('-d','--data',required=False,help='Passes specific data for filtering or exclusion of results; multiple, comma-separated values can be provided',dest='modifierData')
 
-    ## Parse args and confirm the user hasn't passed conflicting arguments
+    ## Parse args and confirm the user hasn't passed conflicting arguments. Also, if
+    ## the user has passed a user in DOMAIN\USERNAME format, the backslash (\) needs
+    ## to be escaped properly or it won't carry through the script.
 
     args = parser.parse_args()
     argCheck(args)
+
+    if args.modifierData and "\\" in args.modifierData:
+        args.modifierData = args.modifierData.replace("\\","\\\\")
+
+    ## Disable coloration of terminal output if the user doesn't want it
+
+    if args.noColor:
+        txtColor.colGood = txtColor.colInfo = txtColor.colWarn = txtColor.colErr = txtColor.colNorm = "\033[0m"
 
     ## Print version information if it's in the args
 
@@ -1093,65 +1393,161 @@ def main():
     geoLoc = os.path.abspath(args.DBFile)
 
     if verbLvl > 1:
-        print("[INFO] Attempting to open file at " + fileLoc + ".")
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to open log file at " + fileLoc, end='\r')
 
     try:
         fileText = open(fileLoc,'r').readlines()
     except:
-        print("[ERROR] Unable to open the log file, possibly because it wasn't where you said it would be. Please check the file path and try again.")
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to open log file at " + fileLoc + " - " + txtColor.colWarn + "FAILED" + txtColor.colNorm)
+        print("[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] Unable to open the log file, possibly because it wasn't where you said it would be. Please check the file path and try again.")
         sys.exit()
-
-    ## If successful, hash the log file too for integrity
-
-    try:
-        fileBytes = open(fileLoc,'rb').read()
-        fileHash = hashlib.sha256(fileBytes).hexdigest()
-    except:
-        fileHash = "Unknown - Error in calculation"
 
     ## Attempt to locate and open MaxMind database file designated by the user
 
     if verbLvl > 1:
-        print("[INFO] Log file loaded successfully!")
-        print("[INFO] Attempting to open file at " + geoLoc + ".")
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to open log file at " + fileLoc + " - " + txtColor.colGood + "SUCCESS" + txtColor.colNorm)
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to open GeoIP database at " + geoLoc, end='\r')
 
     try:
         cityList = geoip2.database.Reader(geoLoc)
     except:
-        print("[ERROR] Unable to open the geolocation database, possibly because it wasn't where you said it would be. Please check the file path and try again.")
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to open GeoIP database at " + geoLoc + " - " + txtColor.colWarn + "FAILED" + txtColor.colNorm)
+        print("[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] Unable to open the geolocation database, possibly because it wasn't where you said it would be. Please check the file path and try again.")
         sys.exit()
 
-    if verbLvl > 0:
-        print("[INFO] GeoIP database loaded successfully!\r\n")
+    if verbLvl > 1:
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to open GeoIP database at " + geoLoc + " - " + txtColor.colGood + "SUCCESS" + txtColor.colNorm)
+
+    ## Since necessary files can be accessed, mark analysis start time
+
+    aStartTime = datetime.utcnow().strftime("%m/%d/%Y, %H:%M:%S")
+
+    ## Hash the log file for integrity
+
+    if verbLvl > 1:
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to generate hash of log file", end='\r')
+
+    try:
+        fileBytes = open(fileLoc,'rb').read()
+        fileHash = hashlib.sha256(fileBytes).hexdigest()
+        if verbLvl > 1:
+            print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to generate hash of log file - " + txtColor.colGood + "SUCCESS" + txtColor.colNorm)
+    except:
+        fileHash = "Unknown - Error in calculation"
+        if verbLvl > 1:
+            print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to generate hash of log file - " + txtColor.colWarn + "FAILED" + txtColor.colNorm)
 
     ## If the user hasn't explicity passed their current location, attempt to determine it based on public IP address
 
     if not args.warnIP or args.warnIP == "getDefault":
-        currLoc = whereAmI(cityList)
+
+        ### Check to see if the user wants to check public IP against a specific site (-M)
+
+        if args.myIP:
+            ipSite = args.myIP
+        else:
+            ipSite = 'icanhazip.com'
+
+        ### Initiate call to the designated site
+
+        if verbLvl > 1:
+            print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to determine user geolocation (using " + ipSite + ")", end='\r')
+
+        currLoc = whereAmI(cityList,ipSite)
 
         ### If the location couldn't be determined for some reason, set it as US and create the info string
 
         if currLoc == "Unknown":
-            currLoc = "United States"
+            currLoc = 'United States'
+            if verbLvl > 1:
+                print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to determine user geolocation (using " + ipSite + ") - " + txtColor.colWarn + "FAILED" + txtColor.colNorm)
+        else:
+            if verbLvl > 1:
+                print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to determine user geolocation (using " + ipSite + ") - " + txtColor.colGood + "SUCCESS" + txtColor.colNorm)
 
     else:
         currLoc = args.warnIP
 
     locMsg = "Current location: " + str(currLoc)
 
-    ## Count the total number of events in the file and update the global variable
+    ## Identify the user's log type selection, set the extraInfo labels for the resultsOut function
+    ## and initiate the necessary parsers
 
-    globalRes.resTotal = len(fileText) - 1
+    if verbLvl > 1:
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to parse all events from log file", end='\r')
 
-    ## Parse start date, end date, and other general log info
-    ## Also create filerDict, which is the user's config for filtering results
+    try:
 
-    dtInfo = parseDates(fileText)
+        if args.logType == '1':
+
+            logFileType = "Microsoft 365 Auth (User Logged In)"
+            extInfLbl.extInfLbl1 = "User Type"
+            extInfLbl.extInfLbl2 = "Record Type"
+            extInfLbl.extInfLbl3 = "User GUID"
+
+            eventDict = parseO365Auth(fileText, verbLvl, args.privIP, args.logGarbage) # Parse the events into a dict
+
+        elif args.logType == '2':
+
+            logFileType = "Microsoft 365 (All Events)"
+            extInfLbl.extInfLbl1 = ""
+            extInfLbl.extInfLbl2 = ""
+            extInfLbl.extInfLbl3 = ""
+
+            print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Microsoft 365 general log parsing will be available in a future release.")
+            sys.exit()
+
+        elif args.logType == '3':
+
+            logFileType = "Azure Active Directory"
+            extInfLbl.extInfLbl1 = ""
+            extInfLbl.extInfLbl2 = ""
+            extInfLbl.extInfLbl3 = ""
+
+            print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Azure Active Directory log parsing will be available in a future release.")
+            sys.exit()
+
+        elif args.logType == '4':
+
+            logFileType = "Microsoft IIS (W3C Format)"
+            extInfLbl.extInfLbl1 = "IIS URI Stem"
+            extInfLbl.extInfLbl2 = "Client User-Agent String"
+            extInfLbl.extInfLbl3 = "HTTP Method & Response Code"
+
+            eventDict = parseIIS(fileText, verbLvl, args.privIP, args.logGarbage, args.eDomain) # Parse the events into a dict
+
+        elif args.logType == '5':
+
+            logFileType = "Debian Auth.log (All Events)"
+            extInfLbl.extInfLbl1 = ""
+            extInfLbl.extInfLbl2 = ""
+            extInfLbl.extInfLbl3 = ""
+
+            print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Debian auth log parsing will be available in a future release.")
+            sys.exit()
+
+    except:
+
+        if verbLvl > 1:
+            print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to parse all events from log file - " + txtColor.colWarn + "FAILED" + txtColor.colNorm + "\r\n")
+        print("[" + txtColor.colErr + "ERROR" + txtColor.colNorm + "] Failed to parse events from the log file provided. Exiting.")
+        sys.exit()
+
+    if verbLvl > 1:
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Attempting to parse all events from log file - " + txtColor.colGood + "SUCCESS" + txtColor.colNorm + "\r\n")
+
+    ## Extract the date and time of the first and last event from eventDict for the upcoming header
+
+    dtInfo = parseDates(eventDict)
+
+    ## Create filerDict, which is the user's config for filtering results
+
     filterDict = getFilterDict(args)
 
     print("*" * 88)
-    print("Analysis start time (UTC): " + datetime.datetime.utcnow().strftime("%m/%d/%Y, %H:%M:%S"))
+    print("Analysis start time (UTC): " + aStartTime)
     print("Log file name: " + os.path.split(args.LogFile)[1])
+    print("Log file type: " + logFileType)
     print("Log file hash (SHA256): " + fileHash)
     print("Earliest event in log (UTC): " + str(dtInfo[0]))
     print("Latest event in log (UTC): " + str(dtInfo[1]))
@@ -1166,22 +1562,23 @@ def main():
     print(filterDict["evntString"])
     print(("*" * 88) + "\r\n")
 
-    if args.kCity or args.filterType or args.excludeType:
-        print("[WARNING] Use of certain filters (-k, -f, -x) may cause relevant events to be omitted")
+    if args.kCity or args.filterType or args.excludeType or args.logGarbage or args.privIP:
+
+        print("[" + txtColor.colErr + "WARN" + txtColor.colNorm + "] Use of certain filters (-k, -f, -x, -g, -P) may cause relevant events to be omitted")
 
     ## If the user passed the -i parameter, initiate IP sort and dump
 
     if args.lIPs:
 
-        print("[INFO] Printing unique IP addresses from this log file\r\n")
+        print("["+ txtColor.colInfo + "INFO" + txtColor.colNorm + "] Printing unique IP addresses from this log file\r\n")
 
-        countIPs = dumpIPs(fileText,verbLvl,cityList)
+        countIPs = dumpIPs(eventDict,verbLvl,cityList,currLoc,args.privIP)
 
     ## If the user passed the -s parameter, initiate the summary process
 
     elif args.topNum:
 
-        print("[INFO] Printing IP and user summary from this log file\r\n")
+        print("["+ txtColor.colInfo + "INFO" + txtColor.colNorm + "] Printing IP and user summary from this log file\r\n")
 
         topCount = args.topNum # The top number of IPs requested by user
         if args.hibpAPIKey:
@@ -1189,25 +1586,25 @@ def main():
         else:
             hibpKey = "None" # No API key provided
 
-        createSummary(fileText,topCount,cityList,currLoc,verbLvl,hibpKey)
+        createSummary(eventDict,topCount,cityList,currLoc,verbLvl,hibpKey)
 
     ## If the user didn't pass any args, or passed only filtering / exclusion args, do the normal thing
 
     else:
 
-        print("[INFO] Printing line-by-line authentication activity from this log\r\n")
+        print("[" + txtColor.colInfo + "INFO" + txtColor.colNorm + "] Printing line-by-line authentication activity from this log\r\n")
 
-        detailedAnalysis(fileText,cityList,args,currLoc)
+        detailedAnalysis(eventDict,cityList,args,currLoc,verbLvl)
 
     ## Close out with some statistical information
 
     print("\r\n" + ("*" * 88))
     print(filterDict["outAction"].split(":")[1].strip(" ") + " complete. Exiting.")
-    print("Analysis complete time (UTC): " + datetime.datetime.utcnow().strftime("%m/%d/%Y, %H:%M:%S"))
-    print("Total events analyzed: " + str(globalRes.resTotal))
+    print("Analysis complete time (UTC): " + datetime.utcnow().strftime("%m/%d/%Y, %H:%M:%S"))
+    print("Total events logged: " + str(f'{globalRes.resTotal:,}'))
     if filterDict["outAction"].split(":")[1].strip(" ") == "Detailed Analysis":
-        print("Total events processed: " + str(globalRes.resProc))
-        print("Total events matched: " + str(globalRes.resPrint))
+        print("Total events analyzed: " + str(f'{globalRes.resProc:,}'))
+        print("Total events printed: " + str(f'{globalRes.resPrint:,}'))
     if filterDict["outAction"].split(":")[1].strip(" ") == "IP dump":
         print("Unique IPv4 addresses found: " + str(countIPs[0]))
         print("Unique IPv6 addresses found: " + str(countIPs[1]))
