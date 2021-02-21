@@ -13,7 +13,7 @@ LoggrJack is a tool written in Python that is meant to help incident responders,
 
 LoggrJack is not meant to replace a SIEM or any other more advanced security event monitoring tool.
 
-![helpimage](https://github.com/TheAirship/LoggrJack/blob/main/Images/LJExample.png)
+![helpimage](https://github.com/TheAirship/LoggrJack/blob/main/Images/LJExampleS.png)
 
 ## Installation & General Use
 
