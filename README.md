@@ -119,7 +119,7 @@ Finally, to quick filter down to IPs that geolocate to areas outside of your cur
 
 `$ python LoggrJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -w`
 
-### FAQ
+## FAQ
 
 * How do I get each log type?
     * *Microsoft 365 authentication logs* - Access your Microsoft 365 admin portal and navigate to the 'Audit Log Search' page in the 'Security & Compliance Center'. For this particular log type, be sure to select 'Workspace Analytics > User Logged In' from the 'Activities' selection box. Once the search results are returned, you can click 'Export results' in the upper right side of the window and select 'Download all results'. You can learn more about exporting Microsoft (Office) 365 logs here: https://docs.microsoft.com/en-us/microsoft-365/compliance/export-view-audit-log-records?view=o365-worldwide
