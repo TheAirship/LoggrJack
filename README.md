@@ -65,7 +65,9 @@ To add Have I Been Pwned breach data for each email address found in the log, fi
 
 `$ python LoggrJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s -p [HIBP API Key]`
 
-Some log files include
+Some log files include usernames in NetBIOS format (i.e., DOMAIN\Username) that cannot be used with Have I Been Pwned. To force LoggrJack to convert those usernames to an email address, you can use the -e parameter. Passed without a value, LoggrJack will attempt to find the email domain in each log line, but you can also specify a domain for use by passing a value, as shown below.
+
+`$ python LoggrJack.py -l [path_to_log_file] -m [path_to_MaxMind_mmdb_file] -s -p [HIBP API Key] -e example.com`
 
 ### Detailed Analysis Mode
 
